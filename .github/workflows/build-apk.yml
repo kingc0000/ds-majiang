@@ -44,7 +44,7 @@ jobs:
         run: |
           npm install -g cordova@8.1.2
           # 旧版 cordova-android 7.x 需要这些旧模块
-          npm install -g q properties-parser shelljs elementtree cordova-common
+          npm install -g q properties-parser shelljs elementtree cordova-common xml2js 2>&1 | tail -3
           echo "NODE_PATH=$(npm root -g)" >> $GITHUB_ENV
 
       - name: Build APK
