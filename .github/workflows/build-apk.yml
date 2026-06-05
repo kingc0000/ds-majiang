@@ -52,16 +52,13 @@ jobs:
       - name: Sign APK
         working-directory: ./client/cordova
         run: |
-          # 查找实际 APK 路径
-          APK=$(find platforms/android -name "app-release-unsigned.apk" 2>/dev/null | head -1)
-          if [ -z "$APK" ]; then
-            APK=$(find platforms/android -name "*.apk" 2>/dev/null | head -1)
-          fi
-          echo "Found APK: $APK"
+          # Cordova 7.x 输出路径
+          APK="platforms/android/build/outputs/apk/android-release-unsigned.apk"
+          echo "APK path: $APK"
           
           # 从 secrets 读取签名密钥
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release-key.keystore 2>/dev/null || true
-          if [ -f release-key.keystore ] && [ -n "$APK" ]; then
+          if [ -f release-key.keystore ]; then
             jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
               -keystore release-key.keystore \
               -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
@@ -75,8 +72,8 @@ jobs:
               "$APK" \
               MajiangGame.apk
           else
-            # 未签名也可以安装测试
-            [ -n "$APK" ] && cp "$APK" MajiangGame.apk || echo "No APK found to copy"
+            # 未签名直接拷贝
+            cp "$APK" MajiangGame.apk || echo "APK not found at: $APK"
           fi
 
       - name: Upload APK
