@@ -36,9 +36,20 @@ jobs:
           echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $SDK/licenses/android-sdk-license 2>/dev/null || true
           echo "84831b9409646a918e30573bab4c9c91346d8abd" > $SDK/licenses/android-sdk-preview-license 2>/dev/null || true
           echo "e9acab5b5fbb560a3d8bc6b24d8c7aec29f16f38" >> $SDK/licenses/android-sdk-preview-license 2>/dev/null || true
-          # 验证 SDK 可用性
-          ls -la $SDK/ 2>/dev/null || echo "Android SDK not pre-installed"
-          ls -la $SDK/platforms/ 2>/dev/null || echo "No platforms yet"
+          # Cordova 7.x 需要从 SDK tools/templates 创建 Gradle Wrapper
+          mkdir -p $SDK/tools/templates/gradle/wrapper
+          # 下载 Gradle Wrapper jar
+          curl -sLo $SDK/tools/templates/gradle/wrapper/gradle-wrapper.jar \
+            "https://raw.githubusercontent.com/nicklausw/gradle-wrapper-jar/master/gradle-wrapper.jar" 2>/dev/null || echo "No jar"
+          # 创建 wrapper properties
+          cat > $SDK/tools/templates/gradle/wrapper/gradle-wrapper.properties << 'PROPS'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-6.7.1-all.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          PROPS
+          echo "Gradle template ready"
 
       - name: Install Cordova
         run: |
