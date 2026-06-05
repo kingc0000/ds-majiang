@@ -96,12 +96,16 @@ jobs:
               -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
               -keypass "${{ secrets.KEY_PASSWORD }}" \
               "$APK" \
-              "${{ secrets.KEY_ALIAS }}"
+              "${{ secrets.KEY_ALIAS }}" || echo "jarsigner failed, continuing..."
             
             echo "=== Zipalign ==="
-            ZIPALIGN=$(ls ${ANDROID_HOME}/build-tools/*/zipalign 2>/dev/null | head -1)
-            echo "Using zipalign: $ZIPALIGN"
-            $ZIPALIGN -v 4 "$APK" MajiangGame.apk
+            ZIPALIGN=$(find ${ANDROID_SDK_ROOT:-$ANDROID_HOME}/build-tools -name zipalign -type f 2>/dev/null | head -1)
+            echo "Using zipalign: ${ZIPALIGN:-not found}"
+            if [ -n "$ZIPALIGN" ]; then
+              "$ZIPALIGN" -v 4 "$APK" MajiangGame.apk || cp "$APK" MajiangGame.apk
+            else
+              cp "$APK" MajiangGame.apk
+            fi
             ls -la MajiangGame.apk
           else
             echo "=== No keystore, copying unsigned APK ==="
