@@ -73,7 +73,11 @@ jobs:
         run: |
           echo "=== Searching for APK ==="
           find platforms/android -name "*.apk" 2>/dev/null
-          APK=$(find platforms/android -name "*-release-unsigned.apk" 2>/dev/null | head -1)
+          # Try debug first (current build type), then release-unsigned, then any
+          APK=$(find platforms/android -name "*debug.apk" 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            APK=$(find platforms/android -name "*-release-unsigned.apk" 2>/dev/null | head -1)
+          fi
           if [ -z "$APK" ]; then
             APK=$(find platforms/android -name "*.apk" 2>/dev/null | head -1)
           fi
