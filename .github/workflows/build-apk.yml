@@ -71,24 +71,38 @@ jobs:
       - name: Sign APK
         working-directory: ./client/cordova
         run: |
-          APK=$(find platforms/android -name "*.apk" -not -name "*unaligned*" 2>/dev/null | head -1)
+          echo "=== Searching for APK ==="
+          find platforms/android -name "*.apk" 2>/dev/null
+          APK=$(find platforms/android -name "*-release-unsigned.apk" 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            APK=$(find platforms/android -name "*.apk" 2>/dev/null | head -1)
+          fi
           echo "APK path: $APK"
           
+          if [ -z "$APK" ] || [ ! -f "$APK" ]; then
+            echo "No APK found!"
+            exit 1
+          fi
+          
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release-key.keystore 2>/dev/null || true
-          if [ -f release-key.keystore ] && [ -n "$APK" ]; then
+          if [ -f release-key.keystore ]; then
+            echo "=== Signing APK ==="
             jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
               -keystore release-key.keystore \
               -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
               -keypass "${{ secrets.KEY_PASSWORD }}" \
               "$APK" \
               "${{ secrets.KEY_ALIAS }}"
-
-            ${ANDROID_HOME}/build-tools/*/zipalign \
-              -v 4 \
-              "$APK" \
-              MajiangGame.apk
+            
+            echo "=== Zipalign ==="
+            ZIPALIGN=$(ls ${ANDROID_HOME}/build-tools/*/zipalign 2>/dev/null | head -1)
+            echo "Using zipalign: $ZIPALIGN"
+            $ZIPALIGN -v 4 "$APK" MajiangGame.apk
+            ls -la MajiangGame.apk
           else
-            cp "$APK" MajiangGame.apk || echo "APK not found at: $APK"
+            echo "=== No keystore, copying unsigned APK ==="
+            cp "$APK" MajiangGame.apk
+            ls -la MajiangGame.apk
           fi
 
       - name: Upload APK
