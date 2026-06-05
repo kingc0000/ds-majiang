@@ -47,13 +47,17 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
+          # 删除旧的平台目录（已提交到 Git 但没有 node_modules）
+          rm -rf platforms/android
+          # 重新添加平台（自动安装所有依赖）
+          cordova platform add android@7.1.1
           cordova build android --release
 
       - name: Sign APK
         working-directory: ./client/cordova
         run: |
-          # Cordova 7.x 输出路径
-          APK="platforms/android/build/outputs/apk/android-release-unsigned.apk"
+          # 查找编译好的 APK
+          APK=$(find platforms/android -name "*.apk" -not -name "*unaligned*" 2>/dev/null | head -1)
           echo "APK path: $APK"
           
           # 从 secrets 读取签名密钥
