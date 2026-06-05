@@ -47,4 +47,4 @@ tmp/
 # System
 *.swp
 *.swo
-*~
+*~node_modules/

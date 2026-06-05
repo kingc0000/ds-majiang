@@ -47,14 +47,12 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          # 不重新加平台，改为给已有平台安装缺失的 node 模块
-          cd platforms/android
-          npm init -y 2>/dev/null
-          npm install q properties-parser shelljs elementtree underscore semver plist-lite base64-js \
-            ansi ansi-styles strip-ansi 2>&1 | tail -5
-          cd ../..
-          # 修复 config.xml 检查（可能存在兼容性问题）
-          cordova build android --release 2>&1
+          # 修复缺失的 node 模块（旧版 cordova-android 7.x 依赖）
+          npm install q properties-parser shelljs elementtree underscore semver \
+            plist base64-js ansi ansi-styles strip-ansi \
+            xcode unorm cordova-common 2>&1 | tail -3
+          # 构建
+          cordova build android --release 2>&1 | tail -30
 
       - name: Sign APK
         working-directory: ./client/cordova
