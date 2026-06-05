@@ -19,6 +19,11 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
 
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
       - name: Setup Android SDK
         run: |
           SDK=/usr/local/lib/android/sdk
