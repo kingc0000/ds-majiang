@@ -40,7 +40,24 @@ jobs:
           mkdir -p $SDK/tools/templates/gradle/wrapper
           # 下载 Gradle Wrapper jar
           curl -sLo $SDK/tools/templates/gradle/wrapper/gradle-wrapper.jar \
-            "https://raw.githubusercontent.com/nicklausw/gradle-wrapper-jar/master/gradle-wrapper.jar" 2>/dev/null || echo "No jar"
+            "https://github.com/nicolas2025/gradle-wrapper-jar/raw/main/gradle-wrapper.jar" 2>/dev/null || \
+          curl -sLo $SDK/tools/templates/gradle/wrapper/gradle-wrapper.jar \
+            "https://raw.githubusercontent.com/nicklausw/gradle-wrapper-jar/master/gradle-wrapper.jar" 2>/dev/null || true
+          # 创建 gradlew 脚本
+          cat > $SDK/tools/templates/gradle/wrapper/gradlew << 'SCRIPT'
+          #!/usr/bin/env sh
+          GRADLE_OPTS=""
+          DIRNAME=$(dirname "$0")
+          exec java $GRADLE_OPTS -jar "$DIRNAME/gradle/wrapper/gradle-wrapper.jar" "$@"
+          SCRIPT
+          chmod +x $SDK/tools/templates/gradle/wrapper/gradlew
+          # 创建 gradlew.bat
+          cat > $SDK/tools/templates/gradle/wrapper/gradlew.bat << 'BAT'
+          @if "%DEBUG%" == "" @echo off
+          @rem Set local scope
+          set DIRNAME=%~dp0
+          "%JAVA_HOME%/bin/java" %GRADLE_OPTS% -jar "%DIRNAME%/gradle/wrapper/gradle-wrapper.jar" %*
+          BAT
           # 创建 wrapper properties
           cat > $SDK/tools/templates/gradle/wrapper/gradle-wrapper.properties << 'PROPS'
           distributionBase=GRADLE_USER_HOME
@@ -49,7 +66,7 @@ jobs:
           zipStoreBase=GRADLE_USER_HOME
           zipStorePath=wrapper/dists
           PROPS
-          echo "Gradle template ready"
+          echo "Gradle template ready: $(ls $SDK/tools/templates/gradle/wrapper/)"
 
       - name: Install Cordova
         run: |
