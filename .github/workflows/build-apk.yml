@@ -37,7 +37,10 @@ jobs:
 
       - name: Install Cordova
         run: |
-          npm install -g cordova@8.1.2 q shelljs
+          npm install -g cordova@8.1.2
+          # 旧版 cordova-android 7.x 依赖 q 和 shelljs
+          npm install -g q shelljs
+          echo "NODE_PATH=$(npm root -g)" >> $GITHUB_ENV
 
       - name: Build APK
         working-directory: ./client/cordova
