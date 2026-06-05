@@ -19,6 +19,11 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
 
+      - name: Setup Node.js 16 (for Cordova 8.x compat)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16'
+
       - name: Setup Android SDK
         run: |
           SDK=/usr/local/lib/android/sdk
@@ -38,17 +43,10 @@ jobs:
       - name: Install Cordova
         run: |
           npm install -g cordova@8.1.2
-          # 旧版 cordova-android 7.x 依赖 q 和 shelljs
-          npm install -g q shelljs
-          echo "NODE_PATH=$(npm root -g)" >> $GITHUB_ENV
 
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          # 安装旧版 cordova-android 7.x 的所有依赖
-          cd platforms/android
-          npm install 2>/dev/null || true
-          cd ../..
           cordova build android --release
 
       - name: Sign APK
