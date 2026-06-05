@@ -13,10 +13,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '11'
           distribution: 'temurin'
 
       - name: Setup Node.js 18
@@ -29,17 +29,30 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          # 接受许可证
+          echo "--- Checking existing SDK ---"
+          ls $SDK/build-tools/ 2>/dev/null || echo "No build-tools"
+          ls $SDK/platforms/android-30/ 2>/dev/null || echo "platforms/android-30 not found"
+          echo "--- Accepting licenses ---"
           mkdir -p $SDK/licenses 2>/dev/null || true
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $SDK/licenses/android-sdk-license 2>/dev/null || true
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $SDK/licenses/android-sdk-license 2>/dev/null || true
           echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $SDK/licenses/android-sdk-license 2>/dev/null || true
           echo "84831b9409646a918e30573bab4c9c91346d8abd" > $SDK/licenses/android-sdk-preview-license 2>/dev/null || true
-          # 安装所需版本
-          yes | $SDK/cmdline-tools/latest/bin/sdkmanager \
+          echo "--- Installing build-tools ---"
+          # 先装 Java 17 用于 sdkmanager
+          JAVA_HOME_17=$(ls -d /usr/lib/jvm/*java*17* 2>/dev/null | head -1 || echo "")
+          if [ -z "$JAVA_HOME_17" ]; then
+            JAVA_HOME_17=$(dirname $(dirname $(readlink -f $(which java))))
+          fi
+          echo "JAVA_HOME_17=$JAVA_HOME_17"
+          # 运行 sdkmanager 需要 Java 17
+          yes | JAVA_HOME=$JAVA_HOME_17 $SDK/cmdline-tools/latest/bin/sdkmanager \
             "build-tools;30.0.3" \
             "platforms;android-30" \
-            --sdk_root=$SDK 2>&1 | tail -5 || true
+            --sdk_root=$SDK 2>&1 || echo "sdkmanager failed, checking alternatives..."
+          echo "--- Final SDK state ---"
+          ls $SDK/build-tools/ 2>/dev/null
+          ls $SDK/platforms/android-30/ 2>/dev/null || echo "platforms/android-30 not found"
 
       - name: Install Cordova
         run: |
