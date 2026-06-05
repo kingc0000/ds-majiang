@@ -43,29 +43,13 @@ jobs:
             "https://github.com/nicolas2025/gradle-wrapper-jar/raw/main/gradle-wrapper.jar" 2>/dev/null || \
           curl -sLo $SDK/tools/templates/gradle/wrapper/gradle-wrapper.jar \
             "https://raw.githubusercontent.com/nicklausw/gradle-wrapper-jar/master/gradle-wrapper.jar" 2>/dev/null || true
-          # 创建 gradlew 脚本
-          cat > $SDK/tools/templates/gradle/wrapper/gradlew << 'SCRIPT'
-          #!/usr/bin/env sh
-          GRADLE_OPTS=""
-          DIRNAME=$(dirname "$0")
-          exec java $GRADLE_OPTS -jar "$DIRNAME/gradle/wrapper/gradle-wrapper.jar" "$@"
-          SCRIPT
+          # 创建 gradlew 脚本（不用 heredoc，YAML 缩进会破坏终止符）
+          printf '#!/usr/bin/env sh\nGRADLE_OPTS=""\nDIRNAME=$(dirname "$0")\nexec java $GRADLE_OPTS -jar "$DIRNAME/gradle/wrapper/gradle-wrapper.jar" "$@"\n' > $SDK/tools/templates/gradle/wrapper/gradlew
           chmod +x $SDK/tools/templates/gradle/wrapper/gradlew
           # 创建 gradlew.bat
-          cat > $SDK/tools/templates/gradle/wrapper/gradlew.bat << 'BAT'
-          @if "%DEBUG%" == "" @echo off
-          @rem Set local scope
-          set DIRNAME=%~dp0
-          "%JAVA_HOME%/bin/java" %GRADLE_OPTS% -jar "%DIRNAME%/gradle/wrapper/gradle-wrapper.jar" %*
-          BAT
+          printf '@if "%%%%DEBUG%%%%" == "" @echo off\n@rem Set local scope\nset DIRNAME=%%%%~dp0\n"%%%%JAVA_HOME%%%%/bin/java" %%%%GRADLE_OPTS%%%% -jar "%%%%DIRNAME%%%%/gradle/wrapper/gradle-wrapper.jar" %%%%*\n' > $SDK/tools/templates/gradle/wrapper/gradlew.bat
           # 创建 wrapper properties
-          cat > $SDK/tools/templates/gradle/wrapper/gradle-wrapper.properties << 'PROPS'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-6.7.1-all.zip
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          PROPS
+          printf 'distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\ndistributionUrl=https\\://services.gradle.org/distributions/gradle-6.7.1-all.zip\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\n' > $SDK/tools/templates/gradle/wrapper/gradle-wrapper.properties
           echo "Gradle template ready: $(ls $SDK/tools/templates/gradle/wrapper/)"
 
       - name: Install Cordova
