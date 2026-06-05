@@ -1,0 +1,50 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Cordova build artifacts
+cordova/platforms/android/.gradle/
+cordova/platforms/android/local.properties
+cordova/platforms/android/build/
+cordova/platforms/android/CordovaLib/build/
+cordova/plugins/
+*.apk
+*.aab
+*.lock
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Laya build
+laya-client/laya/
+laya-client/bin/
+laya-client/.actionScriptProperties
+laya-client/.flexProperties
+laya-client/.project
+
+# Server build
+server/project/*/target/
+server/project/*/bin/
+server/project/distribution/target/
+
+# Gradle
+.gradle/
+build/
+
+# Logs
+*.log
+tmp/
+
+# System
+*.swp
+*.swo
+*~
