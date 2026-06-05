@@ -20,7 +20,11 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: reactivecircus/android-sdk@v3
+        with:
+          api-level: '29'
+          build-tools: '30.0.3'
+          ndk-version: '21.4.7075529'
 
       - name: Install Cordova
         run: |
