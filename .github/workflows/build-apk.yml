@@ -43,12 +43,13 @@ jobs:
       - name: Install Cordova
         run: |
           npm install -g cordova@8.1.2
+          # 旧版 cordova-android 7.x 需要这些旧模块
+          npm install -g q properties-parser shelljs elementtree cordova-common
+          echo "NODE_PATH=$(npm root -g)" >> $GITHUB_ENV
 
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          # 安装旧版 cordova-android 7.x 需要的依赖
-          npm install q properties-parser shelljs elementtree 2>&1 | tail -3
           cordova build android --release 2>&1
 
       - name: Sign APK
