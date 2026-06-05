@@ -47,14 +47,13 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          # 删除旧的平台目录（已提交到 Git 但没有 node_modules）
-          rm -rf platforms/android
-          # 先修复缺失的 jar 文件（微信插件需要）
-          mkdir -p plugins/cordova-plugin-wechat/src/android
-          echo "dummy" > plugins/cordova-plugin-wechat/src/android/libammsdk.jar 2>/dev/null || true
-          # 重新添加平台
-          cordova platform add android@7.1.1 --nofetch 2>&1 || echo "Platform add may have warnings, continuing..."
-          # 构建
+          # 不重新加平台，改为给已有平台安装缺失的 node 模块
+          cd platforms/android
+          npm init -y 2>/dev/null
+          npm install q properties-parser shelljs elementtree underscore semver plist-lite base64-js \
+            ansi ansi-styles strip-ansi 2>&1 | tail -5
+          cd ../..
+          # 修复 config.xml 检查（可能存在兼容性问题）
           cordova build android --release 2>&1
 
       - name: Sign APK
