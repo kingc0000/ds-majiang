@@ -48,7 +48,7 @@ jobs:
         working-directory: ./client/cordova
         run: |
           # 安装旧版 cordova-android 7.x 需要的依赖
-          npm install q properties-parser shelljs 2>&1 | tail -3
+          npm install q properties-parser shelljs elementtree 2>&1 | tail -3
           cordova build android --release 2>&1
 
       - name: Sign APK
