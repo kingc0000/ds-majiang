@@ -37,12 +37,11 @@ jobs:
 
       - name: Install Cordova
         run: |
-          npm install -g cordova@8.1.2
+          npm install -g cordova@8.1.2 q shelljs
 
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          cordova platform add android --nofetch 2>/dev/null || true
           cordova build android --release
 
       - name: Sign APK
