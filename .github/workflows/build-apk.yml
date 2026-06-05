@@ -18,107 +18,90 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Setup Android SDK & Build Tools
+      - name: Setup Android SDK
         run: |
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          echo "=== Checking existing SDK ==="
-          ls $SDK/build-tools/ 2>/dev/null || echo "No build-tools found"
-          ls $SDK/platforms/android-30/ 2>/dev/null || echo "android-30 not found"
-          echo "=== Java version ==="
-          java -version 2>&1 || echo "No Java found"
-          echo "=== Sdkmanager ==="
-          ls $SDK/cmdline-tools/latest/bin/sdkmanager 2>/dev/null || echo "sdkmanager not found"
-          echo "=== Accepting licenses ==="
-          mkdir -p $SDK/licenses 2>/dev/null || true
+          mkdir -p $SDK/licenses
           for lic in "8933bad161af4178b1185d1a37fbf41ea5269c55" "d56f5187479451eabf01fb78af6dfcb131a6481e" "24333f8a63b6825ea9c5514f83c2829b004d1fee"; do
             echo $lic >> $SDK/licenses/android-sdk-license 2>/dev/null || true
           done
           echo "84831b9409646a918e30573bab4c9c91346d8abd" > $SDK/licenses/android-sdk-preview-license 2>/dev/null || true
-          echo "=== Installing build-tools 30.0.3 ==="
           yes | $SDK/cmdline-tools/latest/bin/sdkmanager \
             "build-tools;30.0.3" \
             "platforms;android-30" \
-            --sdk_root=$SDK 2>&1 || echo "SDKMANAGER FAILED"
-          echo "=== Final SDK state ==="
-          ls $SDK/build-tools/ 2>/dev/null
-          ls $SDK/platforms/android-30/ 2>/dev/null || echo "android-30 still not found"
+            --sdk_root=$SDK 2>&1 || echo "sdkmanager note: continuing"
 
       - name: Install Cordova
         run: |
           npm install -g cordova@13 2>&1
 
-      - name: Build APK
+      - name: Build and Prepare APK
         working-directory: ./client/cordova
         run: |
-          echo "=== Java version ==="
+          echo "=== Java ==="
           java -version 2>&1
-          echo "=== ANDROID_SDK_ROOT ==="
-          echo $ANDROID_SDK_ROOT
-          echo "=== Starting cordova build ==="
-          cordova build android --debug 2>&1 | tee build-log.txt
-          echo "=== Exit code: $? ==="
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: ./client/cordova/build-log.txt
-          retention-days: 7
-
-      - name: Sign APK
-        working-directory: ./client/cordova
-        run: |
-          echo "=== Searching for APK ==="
-          find platforms/android -name "*.apk" 2>/dev/null
-          # Try debug first (current build type), then release-unsigned, then any
-          APK=$(find platforms/android -name "*debug.apk" 2>/dev/null | head -1)
-          if [ -z "$APK" ]; then
-            APK=$(find platforms/android -name "*-release-unsigned.apk" 2>/dev/null | head -1)
-          fi
-          if [ -z "$APK" ]; then
-            APK=$(find platforms/android -name "*.apk" 2>/dev/null | head -1)
-          fi
-          echo "APK path: $APK"
+          echo "=== SDK ==="
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls $ANDROID_SDK_ROOT/build-tools/ 2>/dev/null
+          ls $ANDROID_SDK_ROOT/platforms/ 2>/dev/null
           
-          if [ -z "$APK" ] || [ ! -f "$APK" ]; then
-            echo "No APK found!"
+          echo "=== Build ==="
+          npx cordova build android --debug 2>&1
+          BUILD_EXIT=$?
+          echo "Build exit code: $BUILD_EXIT"
+          
+          echo "=== Find APK ==="
+          find . -name "*.apk" 2>/dev/null
+          find platforms -name "*.apk" 2>/dev/null
+          
+          APK=$(find platforms -name "*.apk" 2>/dev/null | head -1)
+          
+          if [ -z "$APK" ]; then
+            echo "ERROR: No APK found anywhere!"
             exit 1
           fi
           
+          echo "=== Found APK: $APK ==="
+          ls -la "$APK"
+          
+          # Try to sign if keystore available
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release-key.keystore 2>/dev/null || true
-          if [ -f release-key.keystore ]; then
-            echo "=== Signing APK ==="
+          if [ -f release-key.keystore ] && [ -s release-key.keystore ]; then
+            echo "=== Signing ==="
             jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
               -keystore release-key.keystore \
               -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
               -keypass "${{ secrets.KEY_PASSWORD }}" \
               "$APK" \
-              "${{ secrets.KEY_ALIAS }}" || echo "jarsigner failed, continuing..."
+              "${{ secrets.KEY_ALIAS }}" 2>&1 || echo "jarsigner note"
             
-            echo "=== Zipalign ==="
             ZIPALIGN=$(find ${ANDROID_SDK_ROOT:-$ANDROID_HOME}/build-tools -name zipalign -type f 2>/dev/null | head -1)
-            echo "Using zipalign: ${ZIPALIGN:-not found}"
             if [ -n "$ZIPALIGN" ]; then
-              "$ZIPALIGN" -v 4 "$APK" MajiangGame.apk || cp "$APK" MajiangGame.apk
+              "$ZIPALIGN" -v 4 "$APK" MajiangGame.apk 2>&1
             else
               cp "$APK" MajiangGame.apk
             fi
-            ls -la MajiangGame.apk
           else
-            echo "=== No keystore, copying unsigned APK ==="
+            echo "=== No keystore, using unsigned APK ==="
             cp "$APK" MajiangGame.apk
-            ls -la MajiangGame.apk
+          fi
+          
+          echo "=== Output ==="
+          ls -la MajiangGame.apk
+          
+          if [ ! -f MajiangGame.apk ]; then
+            echo "ERROR: MajiangGame.apk was not created!"
+            exit 1
           fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: majiang-game-apk
-          path: |
-            ./client/cordova/MajiangGame.apk
+          path: ./client/cordova/MajiangGame.apk
+          retention-days: 7
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
