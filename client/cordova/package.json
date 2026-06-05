@@ -1,0 +1,33 @@
+{
+  "devDependencies": {
+    "cordova-android": "^10.1.2",
+    "cordova-common": "^6.0.0",
+    "cordova-plugin-app-name": "~1.0.0",
+    "cordova-plugin-geolocation": "~2.4.1",
+    "cordova-plugin-splashscreen": "~4.0.1",
+    "cordova-plugin-statusbar": "~2.2.1",
+    "cordova-plugin-wechat": "~1.4.0",
+    "plist": "^5.0.0",
+    "q": "^2.0.3",
+    "shelljs": "^0.10.0",
+    "xml2js": "^0.6.2"
+  },
+  "cordova": {
+    "plugins": {
+      "cordova-plugin-geolocation": {
+        "GEOLOCATION_USAGE_DESCRIPTION": "\u9700\u8981\u5b9a\u4f4d\u786e\u5b9a\u662f\u5426\u4f5c\u5f0a"
+      },
+      "cordova-plugin-splashscreen": {},
+      "cordova-plugin-wechat": {
+        "WECHATAPPID": "wx15a6c9172f161305"
+      },
+      "cordova-plugin-statusbar": {},
+      "cordova-plugin-app-name": {
+        "APP_NAME": "\u4f17\u53cb\u5e7f\u4e1c\u9ebb\u5c06"
+      }
+    },
+    "platforms": [
+      "android"
+    ]
+  }
+}
