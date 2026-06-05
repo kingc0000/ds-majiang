@@ -19,11 +19,6 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
 
-      - name: Setup Node.js 16 (for Cordova 8.x compat)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '16'
-
       - name: Setup Android SDK
         run: |
           SDK=/usr/local/lib/android/sdk
@@ -47,9 +42,6 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          # 安装 cordova-android 7.x 及其所有依赖
-          npm install cordova-android@7.1.1 2>&1 | tail -3
-          # 构建
           cordova build android --release 2>&1
 
       - name: Sign APK
