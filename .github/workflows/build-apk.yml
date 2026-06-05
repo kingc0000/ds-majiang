@@ -45,6 +45,10 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
+          # 安装旧版 cordova-android 7.x 的所有依赖
+          cd platforms/android
+          npm install 2>/dev/null || true
+          cd ../..
           cordova build android --release
 
       - name: Sign APK
