@@ -24,65 +24,71 @@ jobs:
         run: echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV && echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
       - name: Install Cordova CLI
         run: npm install -g cordova@13
-      - name: Platform add android@10
+      - name: Full clean and platform add
         working-directory: ./client/cordova
-        run: rm -rf platforms/android platforms/platforms.json && cordova platform add android@10
+        run: rm -rf platforms plugins node_modules && npm install && cordova platform add android@10
       - name: Set AGP 7.3.1 and SDK 33
         working-directory: ./client/cordova
-        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-      - name: Setup Gradle wrapper 7.5.1
+        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" && echo "=== cdv config ===" && cat platforms/android/cdv-gradle-config.json
+      - name: Print project structure
+        working-directory: ./client/cordova/platforms/android
+        run: |
+          echo "=== Gradle wrapper ==="
+          ls -la gradlew 2>/dev/null || echo "NO gradlew"
+          ls -la gradle/wrapper/ 2>/dev/null || echo "NO gradle/wrapper/"
+          echo "=== Build.gradle ==="
+          head -30 build.gradle
+          echo "=== Settings.gradle ==="
+          cat settings.gradle 2>/dev/null || echo "NO settings.gradle"
+      - name: Override Gradle wrapper to 7.5.1
+        working-directory: ./client/cordova/platforms/android
+        run: |
+          mkdir -p gradle/wrapper
+          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradlew" -o gradlew
+          chmod +x gradlew
+          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
+          cat > gradle/wrapper/gradle-wrapper.properties << 'WRAPPEREOF'
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-7.5.1-bin.zip
+networkTimeout=10000
+validateDistributionUrl=true
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+WRAPPEREOF
+      - name: Remove system Gradle
+        run: |
+          which gradle && gradle --version 2>&1 || echo "No system gradle"
+          sudo rm -f /usr/bin/gradle /usr/local/bin/gradle
+          which gradle 2>/dev/null && echo "STILL EXISTS" || echo "System gradle removed"
+      - name: Run Cordova build (verbose)
         working-directory: ./client/cordova
         run: |
-          mkdir -p platforms/android/gradle/wrapper
-          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradlew" -o platforms/android/gradlew
-          chmod +x platforms/android/gradlew
-          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradle/wrapper/gradle-wrapper.jar" -o platforms/android/gradle/wrapper/gradle-wrapper.jar
-          echo "distributionBase=GRADLE_USER_HOME" > platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "distributionPath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.5.1-bin.zip" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "networkTimeout=10000" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "validateDistributionUrl=true" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "zipStoreBase=GRADLE_USER_HOME" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "zipStorePath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          # No-op wrapper.gradle prevents cordova from regenerating with system gradle
-          echo "// No-op" > platforms/android/wrapper.gradle
-          echo "task wrapper(type: Wrapper) { gradleVersion = '7.5.1' }" >> platforms/android/wrapper.gradle
-      - name: Remove system gradle (force use of wrapper)
-        run: sudo rm -f /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true
-      - name: Cordova build android
-        working-directory: ./client/cordova
+          set -x
+          set -o pipefail
+          echo "=== Pre-build checks ==="
+          ls -la platforms/android/gradlew
+          ls -la platforms/android/gradle/wrapper/gradle-wrapper.jar
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "=== Starting cordova build ==="
+          cordova build android --verbose 2>&1 | tee /tmp/build-output.txt
+          BUILD_EXIT=${PIPESTATUS[0]}
+          echo "BUILD_EXIT_CODE=$BUILD_EXIT" >> $GITHUB_ENV
+          exit $BUILD_EXIT
+      - name: Search for APK
         run: |
-          export ANDROID_HOME=/usr/local/lib/android/sdk
-          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
-          cordova build android --debug 2>&1 | tee /tmp/cordova-build.log
-      - name: Locate and copy APK
-        run: |
-          echo "=== Full APK search ==="
-          find /home/runner/work -name "*.apk" -type f 2>/dev/null || true
-          find /home -name "*.apk" -type f 2>/dev/null || true
-          find / -name "*.apk" -type f 2>/dev/null | head -20 || true
-          echo "=== Build outputs ==="
-          find /home/runner/work -path "*/build/outputs/*" -maxdepth 10 2>/dev/null || true
-          # Try known cordova path
-          APK=$(find /home/runner/work -name "*.apk" -type f 2>/dev/null | head -1)
-          if [ -n "$APK" ]; then
-            cp "$APK" /tmp/app.apk
-            echo "APK_COPIED=true" >> $GITHUB_ENV
-            echo "APK_FROM=$APK" >> $GITHUB_ENV
-            echo "Found APK: $APK"
-          else
-            echo "APK_COPIED=false" >> $GITHUB_ENV
-            echo "NO APK FOUND"
-          fi
-      - name: Upload APK artifact
-        if: env.APK_COPIED == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ds-majiang-apk
-          path: /tmp/app.apk
-      - name: Upload build log
+          echo "=== GITHUB_WORKSPACE ==="
+          echo "$GITHUB_WORKSPACE"
+          echo "=== Full find APK ==="
+          find "$GITHUB_WORKSPACE" -name "*.apk" -type f 2>/dev/null || echo "NO APK"
+          echo "=== Build outputs tree ==="
+          find "$GITHUB_WORKSPACE/client/cordova/platforms/android" -path "*/build/outputs/*" -maxdepth 8 2>/dev/null || echo "NO outputs"
+          echo "=== app/build directory ==="
+          ls -la "$GITHUB_WORKSPACE/client/cordova/platforms/android/app/build/" 2>/dev/null || echo "NO app/build"
+          ls -la "$GITHUB_WORKSPACE/client/cordova/platforms/android/app/build/outputs/" 2>/dev/null || echo "NO app/build/outputs"
+      - name: Upload build output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
-          path: /tmp/cordova-build.log
+          name: build-output
+          path: /tmp/build-output.txt
