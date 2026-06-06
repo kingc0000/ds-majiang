@@ -28,6 +28,10 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
+          echo "JAVA_HOME_was=$JAVA_HOME"
+
+      - name: Check Java
+        run: java -version 2>&1
 
       - name: Install Cordova
         run: npm install -g cordova@13
@@ -35,19 +39,17 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          set -e
+          java -version 2>&1
           rm -rf platforms/android/ platforms/platforms.json
-          echo 'STEP: cordova platform add android@10'
-          cordova platform add android@10
-          echo 'STEP: fix wrapper'
-          sed -i 's|gradle-[0-9.]*bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo 'STEP: fix config'
+          npx cordova platform add android@10 2>&1
+          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
           python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; c['AGP_VERSION']='7.0.4'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)"
-          echo 'STEP: build'
-          cordova build android --debug
-          echo 'STEP: find apk'
+          npx cordova build android --debug 2>&1
           find . -type f -name "*.apk"
 
-      - name: Upload build log
-        if: failure()
-        run: echo "Build failed, check annotations"
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ds-majiang-apk
+          path: client/cordova/platforms/android/app/build/outputs/**/*.apk
