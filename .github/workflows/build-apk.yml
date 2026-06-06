@@ -50,11 +50,12 @@ jobs:
         working-directory: ./client/cordova
         run: |
           set +e
-          cordova build android --debug 2>&1
-          echo "CORDOVA_EXIT=$?"
-          echo "=== SEARCH APK ==="
-          find . -name "*.apk" -type f 2>/dev/null || true
-          find . -path "*/build/outputs/*" -maxdepth 8 2>/dev/null || true
+          cordova build android --debug > /tmp/cordova-build.log 2>&1
+          CORDOVA_EXIT=$?
+          echo "CORDOVA_EXIT=$CORDOVA_EXIT" >> /tmp/cordova-build.log
+          find . -name "*.apk" -type f >> /tmp/cordova-build.log 2>/dev/null || true
+          find . -path "*/build/outputs/*" -maxdepth 8 >> /tmp/cordova-build.log 2>/dev/null || true
+          echo "DONE" >> /tmp/cordova-build.log
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
