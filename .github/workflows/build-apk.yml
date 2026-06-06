@@ -80,7 +80,15 @@ jobs:
           if [ -n "$APK_FILE" ]; then
             cp "$APK_FILE" "$GITHUB_WORKSPACE/app.apk"
             echo "COPIED: $APK_FILE"
-          fi
+          else
+            echo "=== SEARCH EVERYWHERE ==="
+            find /home -name "*.apk" -maxdepth 6 -type f 2>/dev/null | head -10 || true
+            find /tmp -name "*.apk" -type f 2>/dev/null | head -5 || true
+            find /root -name "*.apk" -type f 2>/dev/null | head -5 || true
+            echo "=== GRADLE CACHE ==="
+            ls -la ~/.gradle/caches/ 2>/dev/null | head -5 || true
+            echo "=== GRADLE LOG TAIL ==="
+            tail -50 $GITHUB_WORKSPACE/gradle-log.txt 2>/dev/null || true
 
       - name: Upload gradle log
         if: always()
