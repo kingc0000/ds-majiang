@@ -36,23 +36,19 @@ jobs:
         run: |
           exec 2>&1
           set +e
+          set +o pipefail
           rm -rf platforms/android/ platforms/platforms.json
           cordova platform add android@10
           echo "PLATFORM_EXIT=$?"
-          echo "=== FIX CONFIG ==="
           sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null
           python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.0.4';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" 2>/dev/null
-          echo "=== BUILD ==="
           cordova build android --debug
           echo "BUILD_EXIT=$?"
-          echo "=== FULL APK SEARCH ==="
+          echo "=== APK ==="
           find platforms -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null
-          find platforms -type d -name "outputs" 2>/dev/null
-          echo "=== ALL AAR ==="
-          find platforms -name "*.aar" -type f 2>/dev/null | head -5
-          echo "=== GRADLE TASKS ==="
-          cd platforms/android && ./gradlew tasks --group="build" 2>/dev/null | grep -i "assemble\|bundle" | head -5
-          cd platforms/android && ./gradlew projects 2>/dev/null | head -10
+          echo "=== OUTPUTS ==="
+          find platforms -type d -name outputs 2>/dev/null
+          echo "=== DONE ==="
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
