@@ -22,11 +22,6 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          echo "=== Pre-installed ==="
-          ls -la $SDK/build-tools/ 2>&1 || echo "no build-tools dir"
-          ls -la $SDK/platforms/ 2>&1 || echo "no platforms dir"
-          java -version 2>&1
-          echo "JAVA_HOME=$JAVA_HOME"
 
       - name: Install Cordova
         run: npm install -g cordova@13 2>&1
@@ -34,33 +29,18 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          set +e  # don't exit on error
-          BUILD_LOG=build-log.txt
-          echo "=== ENV ===" > $BUILD_LOG
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $BUILD_LOG
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $BUILD_LOG
-          java -version 2>&1 >> $BUILD_LOG
-          echo "=== FILES ===" >> $BUILD_LOG
-          ls -la >> $BUILD_LOG
-          ls -la config.xml 2>&1 >> $BUILD_LOG
-          echo "=== CLEAN PLATFORM ===" >> $BUILD_LOG
+          set -e
+          echo "=== CLEAN PLATFORM ==="
           rm -rf platforms/android/
           rm -f platforms/platforms.json
-          echo "=== ADD PLATFORM ===" >> $BUILD_LOG
-          cordova platform add android@10 2>&1 | tee -a $BUILD_LOG
-          echo "EXIT_CODE=$?" >> $BUILD_LOG
-          echo "=== CDV-GRADLE-CONFIG ===" >> $BUILD_LOG
-          cat platforms/android/cdv-gradle-config.json 2>&1 >> $BUILD_LOG
-          echo "=== BUILD ===" >> $BUILD_LOG
-          cordova build android --debug 2>&1 | tee -a $BUILD_LOG
-          echo "EXIT_CODE=$?" >> $BUILD_LOG
-          echo "=== APKS ===" >> $BUILD_LOG
-          find . -name "*.apk" 2>&1 >> $BUILD_LOG
-          cp $BUILD_LOG $HOME/
+          echo "=== ADD PLATFORM ==="
+          cordova platform add android@10 2>&1
+          echo "=== BUILD ==="
+          cordova build android --debug 2>&1
           echo "=== DONE ==="
 
-      - name: Upload build log
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
-          path: build-log.txt
+          name: ds-majiang-apk
+          path: client/cordova/platforms/android/app/build/outputs/apk/**/*.apk
