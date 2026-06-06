@@ -62,9 +62,10 @@ jobs:
             cd $GITHUB_WORKSPACE
             git config user.name "CI Builder"
             git config user.email "ci@example.com"
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
             git add build-info/
-            git commit -m "build info" || true
-            git push origin HEAD:$GITHUB_REF_NAME 2>&1 || echo "push skipped"
+            git commit -m "build info [skip ci]" 2>/dev/null || true
+            git push origin HEAD:${{ github.ref_name }} 2>&1 || echo "push failed"
           fi
 
       - name: Upload APK
