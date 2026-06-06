@@ -26,26 +26,39 @@ jobs:
           yes | $SDK/cmdline-tools/latest/bin/sdkmanager \
             "build-tools;30.0.3" \
             "platforms;android-30" \
-            --sdk_root=$SDK 2>&1
+            --sdk_root=$SDK 2>&1 || true
 
-      - name: Install Cordova & Build
+      - name: Install Cordova
+        run: |
+          npm install -g cordova@13 2>&1
+
+      - name: Build APK
         working-directory: ./client/cordova
         run: |
-          set -x
-          npm install -g cordova@13 2>&1
-          echo "--- Removing problematic build.json ---"
-          rm -f build.json
-          echo "--- Adding android platform ---"
-          cordova platform add android@10 2>&1
-          echo "--- Building ---"
+          echo "=== Java ==="
+          java -version 2>&1
+          echo "=== SDK ==="
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls $ANDROID_SDK_ROOT/build-tools/ 2>/dev/null
+          echo "=== Build ==="
           cordova build android --debug 2>&1
-          echo "--- Finding APK ---"
-          find . -name "*.apk" 2>/dev/null
-          find . -name "*.apk" 2>/dev/null | head -1 | xargs -I{} cp {} MajiangGame.apk 2>/dev/null || true
-          ls -la MajiangGame.apk 2>/dev/null || echo "No APK found"
+          echo "=== EXIT CODE: $? ==="
+
+      - name: Find and copy APK
+        working-directory: ./client/cordova
+        run: |
+          find . -name "*.apk" -type f 2>/dev/null
+          APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
+          if [ -n "$APK" ]; then
+            cp "$APK" MajiangGame.apk
+            ls -la MajiangGame.apk
+            echo "APK copied successfully"
+          else
+            echo "No APK found!"
+            exit 1
+          fi
 
       - name: Upload APK
-        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
           name: majiang-game-apk
