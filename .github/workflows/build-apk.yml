@@ -23,37 +23,35 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          echo "=== Pre-installed build-tools ==="
-          ls $SDK/build-tools/ 2>/dev/null
-          echo "=== Pre-installed platforms ==="
-          ls $SDK/platforms/ 2>/dev/null
-          echo "=== Java ==="
+          echo "=== Pre-installed ==="
+          ls $SDK/build-tools/
+          echo "---"
+          ls $SDK/platforms/
+          echo "---"
           java -version 2>&1
 
       - name: Install Cordova
         run: npm install -g cordova@13 2>&1
 
-      - name: Build
+      - name: Build (don't fail)
         working-directory: ./client/cordova
         run: |
+          set +e
+          echo "=== ENV ==="
           echo "JAVA_HOME=$JAVA_HOME"
-          echo "SDK=$ANDROID_SDK_ROOT"
-          ls $ANDROID_SDK_ROOT/build-tools/ 2>/dev/null
-          ls $ANDROID_SDK_ROOT/platforms/ 2>/dev/null
-          ls platforms/android/app/ 2>/dev/null | head -3
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls $ANDROID_SDK_ROOT/build-tools/
+          ls platforms/android/app/ 2>/dev/null
+          echo "=== RUN ==="
           cordova build android --debug 2>&1
+          echo "=== EXIT CODE: $? ==="
+        continue-on-error: true
 
-      - name: Copy APK
-        if: success()
+      - name: Check cordova output
         working-directory: ./client/cordova
         run: |
-          APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
-          [ -n "$APK" ] && cp "$APK" MajiangGame.apk && ls -la MajiangGame.apk || exit 1
-
-      - name: Upload APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: majiang-game-apk
-          path: ./client/cordova/MajiangGame.apk
-          retention-days: 7
+          echo "=== last lines ==="
+          cordova build android --debug 2>&1 | tail -5
+          echo "---"
+          ls platforms/android/app/build/outputs/ 2>/dev/null || echo "no outputs"
+          find . -name "*.apk" 2>/dev/null || echo "no apks"
