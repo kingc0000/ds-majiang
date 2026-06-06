@@ -11,37 +11,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
       - name: Setup Android SDK
-        run: |
-          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
-
+        run: echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV && echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
       - name: Install Cordova CLI
         run: npm install -g cordova@13
-
       - name: Platform add android@10
         working-directory: ./client/cordova
-        run: |
-          rm -rf platforms/android platforms/platforms.json
-          cordova platform add android@10
-
+        run: rm -rf platforms/android platforms/platforms.json && cordova platform add android@10
       - name: Set AGP 7.3.1 and SDK 33
         working-directory: ./client/cordova
-        run: |
-          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-
+        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
       - name: Setup Gradle wrapper 7.5.1
         working-directory: ./client/cordova
         run: |
@@ -49,21 +37,16 @@ jobs:
           curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradlew" -o platforms/android/gradlew
           chmod +x platforms/android/gradlew
           curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradle/wrapper/gradle-wrapper.jar" -o platforms/android/gradle/wrapper/gradle-wrapper.jar
-          cat > platforms/android/gradle/wrapper/gradle-wrapper.properties << 'WRAPPER'
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-7.5.1-bin.zip
-networkTimeout=10000
-validateDistributionUrl=true
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
-WRAPPER
-          cat > platforms/android/wrapper.gradle << 'WRAPPERGRADLE'
-// No-op - wrapper already configured manually
-task wrapper(type: Wrapper) { gradleVersion = '7.5.1' }
-WRAPPERGRADLE
-
-      - name: Build APK via gradlew
+          echo "distributionBase=GRADLE_USER_HOME" > platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.5.1-bin.zip" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "networkTimeout=10000" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "validateDistributionUrl=true" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStoreBase=GRADLE_USER_HOME" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStorePath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "// No-op - wrapper already configured manually" > platforms/android/wrapper.gradle
+          echo "task wrapper(type: Wrapper) { gradleVersion = '7.5.1' }" >> platforms/android/wrapper.gradle
+      - name: Build via gradlew
         working-directory: ./client/cordova/platforms/android
         run: |
           export ANDROID_HOME=/usr/local/lib/android/sdk
@@ -71,7 +54,6 @@ WRAPPERGRADLE
           sudo rm -f /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon 2>&1
-
       - name: Locate APK
         id: find_apk
         working-directory: ./client/cordova/platforms/android
@@ -79,13 +61,12 @@ WRAPPERGRADLE
           APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
           if [ -n "$APK" ]; then
             echo "APK_PATH=$APK" >> $GITHUB_OUTPUT
-            echo "Found: $APK"
+            echo "Found APK: $APK"
           else
             echo "APK_PATH=" >> $GITHUB_OUTPUT
             echo "NO APK FOUND"
             find . -path "*/build/outputs/*" -maxdepth 8 2>/dev/null || true
           fi
-
       - name: Upload APK artifact
         if: steps.find_apk.outputs.APK_PATH != ''
         uses: actions/upload-artifact@v4
