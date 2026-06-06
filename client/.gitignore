@@ -124,6 +124,7 @@ $RECYCLE.BIN/
 .mtj.tmp/
 
 # Package Files #
+!cordova-plugin-wechat/src/android/libammsdk.jar
 *.jar
 *.war
 *.ear
