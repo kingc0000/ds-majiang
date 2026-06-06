@@ -44,21 +44,28 @@ jobs:
           python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.0.4';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" 2>/dev/null
           cordova build android --debug
           echo "BEXIT=$?"
-          # Search ALL platforms for APK and output dirs
           find platforms -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null
           find platforms -type d -name outputs 2>/dev/null
-          # Save full listing to file
-          find platforms -type f -maxdepth 8 > /tmp/build-files.txt 2>/dev/null
-          find platforms -type d -maxdepth 8 > /tmp/build-dirs.txt 2>/dev/null
+          # Save build info to be read later
+          mkdir -p /tmp/build-info
+          find platforms -type f -maxdepth 8 > /tmp/build-info/files.txt 2>/dev/null
+          find platforms -type d -maxdepth 8 > /tmp/build-info/dirs.txt 2>/dev/null
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties > /tmp/build-info/gradle-wrapper.properties 2>/dev/null
+          cat platforms/android/cdv-gradle-config.json > /tmp/build-info/cdv-config.json 2>/dev/null
+          head -100 platforms/android/app/build.gradle > /tmp/build-info/app-build.gradle 2>/dev/null
+          head -50 platforms/android/build.gradle > /tmp/build-info/root-build.gradle 2>/dev/null
 
-      - name: Upload outputs tree
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-tree
-          path: |
-            /tmp/build-files.txt
-            /tmp/build-dirs.txt
+      - name: Commit build info
+        run: |
+          if [ -d /tmp/build-info ]; then
+            cp -r /tmp/build-info $GITHUB_WORKSPACE/
+            cd $GITHUB_WORKSPACE
+            git config user.name "CI Builder"
+            git config user.email "ci@example.com"
+            git add build-info/
+            git commit -m "build info" || true
+            git push origin HEAD:$GITHUB_REF_NAME 2>&1 || echo "push skipped"
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
