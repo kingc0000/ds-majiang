@@ -44,45 +44,45 @@ jobs:
           echo "validateDistributionUrl=true" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
           echo "zipStoreBase=GRADLE_USER_HOME" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
           echo "zipStorePath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "// No-op - wrapper already configured manually" > platforms/android/wrapper.gradle
+          # No-op wrapper.gradle prevents cordova from regenerating with system gradle
+          echo "// No-op" > platforms/android/wrapper.gradle
           echo "task wrapper(type: Wrapper) { gradleVersion = '7.5.1' }" >> platforms/android/wrapper.gradle
-      - name: Build via gradlew
-        working-directory: ./client/cordova/platforms/android
+      - name: Remove system gradle (force use of wrapper)
+        run: sudo rm -f /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true
+      - name: Cordova build android
+        working-directory: ./client/cordova
         run: |
-          set -x
-          set -o pipefail
           export ANDROID_HOME=/usr/local/lib/android/sdk
           export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
-          which java && java -version 2>&1
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls -la ./gradlew
-          ls -la gradle/wrapper/
-          sudo rm -f /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build-log.txt
+          cordova build android --debug 2>&1 | tee /tmp/cordova-build.log
+      - name: Locate and copy APK
+        run: |
+          echo "=== Full APK search ==="
+          find /home/runner/work -name "*.apk" -type f 2>/dev/null || true
+          find /home -name "*.apk" -type f 2>/dev/null || true
+          find / -name "*.apk" -type f 2>/dev/null | head -20 || true
+          echo "=== Build outputs ==="
+          find /home/runner/work -path "*/build/outputs/*" -maxdepth 10 2>/dev/null || true
+          # Try known cordova path
+          APK=$(find /home/runner/work -name "*.apk" -type f 2>/dev/null | head -1)
+          if [ -n "$APK" ]; then
+            cp "$APK" /tmp/app.apk
+            echo "APK_COPIED=true" >> $GITHUB_ENV
+            echo "APK_FROM=$APK" >> $GITHUB_ENV
+            echo "Found APK: $APK"
+          else
+            echo "APK_COPIED=false" >> $GITHUB_ENV
+            echo "NO APK FOUND"
+          fi
+      - name: Upload APK artifact
+        if: env.APK_COPIED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ds-majiang-apk
+          path: /tmp/app.apk
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
-          path: /tmp/build-log.txt
-      - name: Locate APK
-        id: find_apk
-        working-directory: ./client/cordova/platforms/android
-        run: |
-          APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
-          if [ -n "$APK" ]; then
-            echo "APK_PATH=$APK" >> $GITHUB_OUTPUT
-            echo "Found APK: $APK"
-          else
-            echo "APK_PATH=" >> $GITHUB_OUTPUT
-            echo "NO APK FOUND"
-            find . -path "*/build/outputs/*" -maxdepth 8 2>/dev/null || true
-          fi
-      - name: Upload APK artifact
-        if: steps.find_apk.outputs.APK_PATH != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: ds-majiang-apk
-          path: client/cordova/platforms/android/${{ steps.find_apk.outputs.APK_PATH }}
+          path: /tmp/cordova-build.log
