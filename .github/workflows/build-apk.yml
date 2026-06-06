@@ -48,8 +48,8 @@ jobs:
         if: failure()
         run: |
           if [ -s build-log.txt ]; then
-            tail -30 build-log.txt | while IFS= read -r line; do
-              echo "::error::gradle: $line"
+            grep -v "^[[:space:]]*at " build-log.txt | grep -v "^[[:space:]]*\.\.\. " | tail -30 | while IFS= read -r line; do
+              echo "::error::$line"
             done
           else
             echo "::error::build-log.txt not found or empty"
