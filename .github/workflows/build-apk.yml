@@ -26,45 +26,23 @@ jobs:
         run: npm install -g cordova@13
       - name: Platform add android@10
         working-directory: ./client/cordova
-        run: rm -rf platforms && cordova platform add android@10 && ls platforms/android/
+        run: rm -rf platforms && cordova platform add android@10
       - name: Set AGP 7.3.1 SDK 33
         working-directory: ./client/cordova
+        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
+      - name: Build with gradlew
+        working-directory: ./client/cordova/platforms/android
         run: |
-          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-          echo "=== cdv-gradle-config.json ==="
-          cat platforms/android/cdv-gradle-config.json
-          echo "=== gradle-wrapper.properties ==="
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null || echo "NO WRAPPER PROPS"
-          echo "=== gradlew ==="
-          ls -la platforms/android/gradlew
-          ls -la platforms/android/gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo "NO WRAPPER JAR"
-      - name: Build with cordova
-        working-directory: ./client/cordova
-        run: |
-          echo "=== Cordova version ==="
-          cordova --version
-          echo "=== Cordova requirements ==="
-          cordova requirements android 2>&1 || echo "requirements not available"
-          echo "=== Building ==="
-          cordova build android --verbose 2>&1
-          echo "=== Build exit: $? ==="
-      - name: Find APK
-        if: always()
-        working-directory: ./client/cordova
-        run: |
-          echo "=== All APK files ==="
-          find / -name "*.apk" -type f 2>/dev/null | head -20
-          echo "=== App build outputs ==="
-          find platforms -type d -name "outputs" 2>/dev/null || echo "No outputs dir"
-          echo "=== app structure ==="
-          find platforms/android -type d -name "apk" 2>/dev/null || echo "No apk dir"
-          echo "=== android build dirs ==="
-          find platforms/android -type d -name "build" 2>/dev/null | head -10
-      - name: Upload build output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-output
-          path: |
-            client/cordova/platforms/android/build/**/*.txt
-            client/cordova/platforms/android/build/**/*.log
+          set +e
+          echo "=== PWD ==="
+          pwd
+          echo "=== Build with gradlew ==="
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1
+          EXIT_CODE=$?
+          echo "=== EXIT: $EXIT_CODE ==="
+          echo "=== SEARCH APK ==="
+          find / -name "*.apk" -type f 2>/dev/null | head -10
+          echo "=== BUILD OUTPUTS ==="
+          find . -path "*/build/outputs/*" -type f 2>/dev/null | head -10
+          exit $EXIT_CODE
