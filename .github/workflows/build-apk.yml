@@ -52,6 +52,10 @@ jobs:
           ls $ANDROID_SDK_ROOT/build-tools/ 2>&1 | tee -a $LOGFILE
           echo "=== ADD PLATFORM ===" | tee -a $LOGFILE
           cordova platform add android@10 2>&1 | tee -a $LOGFILE
+          echo "=== FIX WRAPPER ===" | tee -a $LOGFILE
+          # Gradle 9.5.1 is incompatible with AGP 4.2.2; force Gradle 7.1.1
+          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 | tee -a $LOGFILE
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 | tee -a $LOGFILE
           echo "=== FIX CONFIG ===" | tee -a $LOGFILE
           python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)" 2>&1 | tee -a $LOGFILE
           cat platforms/android/cdv-gradle-config.json | tee -a $LOGFILE
