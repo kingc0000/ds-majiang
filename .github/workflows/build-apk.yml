@@ -53,6 +53,7 @@ jobs:
           cat gradle/wrapper/gradle-wrapper.properties 2>&1 || echo "NO PROPS"
           if [ ! -f gradlew ]; then
             echo "=== DOWNLOAD ==="
+            mkdir -p gradle/wrapper/
             curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.1.1/gradlew" -o gradlew
             curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.1.1/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
             chmod +x gradlew
