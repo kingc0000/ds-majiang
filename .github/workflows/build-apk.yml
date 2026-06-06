@@ -37,17 +37,18 @@ jobs:
           chmod +x platforms/android/gradlew
           curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradle/wrapper/gradle-wrapper.jar" -o platforms/android/gradle/wrapper/gradle-wrapper.jar
 
-      - name: Fix wrapper version
+      - name: Create gradle wrapper
         working-directory: ./client/cordova
         run: |
-          echo "=== GRADLE DIR ==="
-          ls -la platforms/android/gradle/ 2>/dev/null || echo "NO GRADLE DIR"
-          ls -la platforms/android/gradle/wrapper/ 2>/dev/null || echo "NO WRAPPER DIR"
-          echo "=== PROPS ==="
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null || echo "NO PROPS"
-          echo "=== GRADLEW ==="
-          find platforms -name "gradle-wrapper.properties" 2>/dev/null
-          find platforms -name "gradle-wrapper.jar" 2>/dev/null
+          echo "=== CREATE WRAPPER PROPERTIES ==="
+          cat > platforms/android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-7.5.1-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Fix AGP version
         working-directory: ./client/cordova
