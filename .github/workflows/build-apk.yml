@@ -65,16 +65,16 @@ jobs:
         working-directory: ./client/cordova
         run: |
           echo "=== BUILD DIR ==="
-          find platforms/android/app/build -maxdepth 5 -type d 2>/dev/null
+          find platforms/android/app/build -maxdepth 5 -type d 2>/dev/null || true
           echo "=== INTERMEDIATES ==="
-          ls -la platforms/android/app/build/intermediates/apk/ 2>/dev/null
+          ls -la platforms/android/app/build/intermediates/apk/ 2>/dev/null || true
           echo "=== OUTPUTS ==="
-          ls -la platforms/android/app/build/outputs/ 2>/dev/null
-          ls -la platforms/android/app/build/outputs/apk/ 2>/dev/null
+          ls -la platforms/android/app/build/outputs/ 2>/dev/null || true
+          ls -la platforms/android/app/build/outputs/apk/ 2>/dev/null || true
+          echo "=== ALL APK ==="
+          find . -name "*.apk" -type f 2>/dev/null || true
           echo "=== SDK ==="
-          ls /usr/local/lib/android/sdk/platforms/ 2>/dev/null
-          echo "=== ANDROID ==="
-          ls $ANDROID_HOME/platforms/ 2>/dev/null
+          ls -la platforms/android/app/build/ 2>/dev/null || true
 
       - name: Upload gradle log
         if: always()
