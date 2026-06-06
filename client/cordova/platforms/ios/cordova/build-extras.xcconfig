@@ -1,3 +1,0 @@
-CODE_SIGN_IDENTITY = iPhone Developer
-CODE_SIGN_IDENTITY[sdk=iphoneos*] = iPhone Developer
-DEVELOPMENT_TEAM = ZF8FS672WW

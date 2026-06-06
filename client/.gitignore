@@ -133,6 +133,7 @@ $RECYCLE.BIN/
 hs_err_pid*
 
 
+platforms/
 node_modules
 ### Xcode template
 # Xcode

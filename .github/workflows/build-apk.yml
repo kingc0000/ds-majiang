@@ -33,25 +33,23 @@ jobs:
       - name: Install Cordova
         run: npm install -g cordova@13 2>&1
 
-      - name: Build (don't fail)
+      - name: Build APK
         working-directory: ./client/cordova
+        shell: bash
         run: |
-          set +e
-          echo "=== ENV ==="
-          echo "JAVA_HOME=$JAVA_HOME"
+          set -e
+          echo "=== ENV CHECK ==="
+          java -version 2>&1
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
           ls $ANDROID_SDK_ROOT/build-tools/
-          ls platforms/android/app/ 2>/dev/null
-          echo "=== RUN ==="
+          ls $ANDROID_SDK_ROOT/platforms/
+          echo "=== INSTALL CORDOVA ==="
+          npm install -g cordova@13 2>&1
+          echo "=== CLEAN PLATFORM ==="
+          rm -rf platforms/android/
+          echo "=== ADD PLATFORM ==="
+          cordova platform add android@10 2>&1
+          echo "=== BUILD ==="
           cordova build android --debug 2>&1
-          echo "=== EXIT CODE: $? ==="
-        continue-on-error: true
-
-      - name: Check cordova output
-        working-directory: ./client/cordova
-        run: |
-          echo "=== last lines ==="
-          cordova build android --debug 2>&1 | tail -5
-          echo "---"
-          ls platforms/android/app/build/outputs/ 2>/dev/null || echo "no outputs"
-          find . -name "*.apk" 2>/dev/null || echo "no apks"
+          echo "=== DONE ==="
+          find . -name "*.apk"
