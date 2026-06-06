@@ -22,34 +22,31 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
+          java -version 2>&1
+          ls $SDK/build-tools/
+          ls $SDK/platforms/
 
       - name: Install Cordova
         run: npm install -g cordova@13 2>&1
 
       - name: Build APK
+        id: build
         working-directory: ./client/cordova
-        continue-on-error: true
         run: |
-          set +e
-          echo "=== CLEAN ==="
+          set -e
           rm -rf platforms/android/
           rm -f platforms/platforms.json
-          echo "=== ADD PLATFORM ==="
-          cordova platform add android@10 2>&1
-          echo "=== BUILD ==="
-          cordova build android --debug 2>&1
-          echo "=== FIND APK ==="
-          find . -name "*.apk" -type f 2>&1
+          cordova platform add android@10 2>&1 | tee $HOME/platform-log.txt
+          echo "--- platform add done ---"
+          ls -la platforms/android/cdv-gradle-config.json
+          cat platforms/android/cdv-gradle-config.json
+          cordova build android --debug 2>&1 | tee -a $HOME/platform-log.txt
+          echo "--- build done ---"
+          find . -name "*.apk" -type f
 
-      - name: Copy APK to root
-        working-directory: ./client/cordova
-        run: |
-          mkdir -p /tmp/apk-output/
-          find . -name "*.apk" -type f -exec cp {} /tmp/apk-output/ \;
-          ls -la /tmp/apk-output/
-
-      - name: Upload debug APK
+      - name: Upload log (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ds-majiang-debug-apk
-          path: /tmp/apk-output/
+          name: build-log
+          path: /root/platform-log.txt
