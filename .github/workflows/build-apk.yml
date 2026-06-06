@@ -59,7 +59,15 @@ jobs:
 
       - name: Build APK
         working-directory: ./client/cordova
-        run: cordova build android --debug
+        continue-on-error: true
+        run: cordova build android --debug 2>&1 | tee $GITHUB_WORKSPACE/build-log.txt
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build-log.txt
 
       - name: Find APK
         working-directory: ./client/cordova
