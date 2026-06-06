@@ -60,6 +60,21 @@ jobs:
           cd platforms/android && ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee $GITHUB_WORKSPACE/gradle-log.txt
           echo "GRADLE_EXIT=${PIPESTATUS[0]}"
 
+      - name: Find APK
+        if: always()
+        working-directory: ./client/cordova
+        run: |
+          echo "=== SEARCH APK ==="
+          find . -type f -name "*.apk" 2>/dev/null
+          find . -type d -name outputs 2>/dev/null
+          echo "=== BUILD OUTPUTS ==="
+          find . -path "*/build/outputs/*" 2>/dev/null
+          echo "=== APP BUILD ==="
+          find platforms/android/app/build -type d 2>/dev/null | head -20
+          echo "=== CORDOVA BUILD ==="
+          cordova build android --debug 2>&1 | tail -20
+          echo "CORDOVA_BUILD_EXIT=$?"
+
       - name: Upload gradle log
         if: always()
         uses: actions/upload-artifact@v4
