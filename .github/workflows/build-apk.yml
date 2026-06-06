@@ -35,38 +35,29 @@ jobs:
         working-directory: ./client/cordova
         run: |
           exec 2>&1
-          set +e
-          set +o pipefail
           rm -rf platforms/android/ platforms/platforms.json
+          echo "=== PLATFORM ADD ==="
           cordova platform add android@10
-          echo "PEXIT=$?"
-          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null
-          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.0.4';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" 2>/dev/null
-          cordova build android --debug
-          echo "BEXIT=$?"
-          find platforms -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null
-          find platforms -type d -name outputs 2>/dev/null
-          # Save build info to be read later
-          mkdir -p /tmp/build-info
-          find platforms -type f -maxdepth 8 > /tmp/build-info/files.txt 2>/dev/null
-          find platforms -type d -maxdepth 8 > /tmp/build-info/dirs.txt 2>/dev/null
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties > /tmp/build-info/gradle-wrapper.properties 2>/dev/null
-          cat platforms/android/cdv-gradle-config.json > /tmp/build-info/cdv-config.json 2>/dev/null
-          head -100 platforms/android/app/build.gradle > /tmp/build-info/app-build.gradle 2>/dev/null
-          head -50 platforms/android/build.gradle > /tmp/build-info/root-build.gradle 2>/dev/null
-
-      - name: Commit build info
-        run: |
-          if [ -d /tmp/build-info ]; then
-            cp -r /tmp/build-info $GITHUB_WORKSPACE/
-            cd $GITHUB_WORKSPACE
-            git config user.name "CI Builder"
-            git config user.email "ci@example.com"
-            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-            git add build-info/
-            git commit -m "build info [skip ci]" 2>/dev/null || true
-            git push origin HEAD:${{ github.ref_name }} 2>&1 || echo "push failed"
-          fi
+          echo "PLATFORM EXIT CODE: $?"
+          ls -la platforms/android/gradlew 2>/dev/null && echo "gradlew EXISTS" || echo "NO gradlew"
+          ls -la platforms/android/gradle/wrapper/ 2>/dev/null
+          echo "=== FIX ==="
+          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.5.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null && echo "FIXED wrapper" || echo "NO wrapper"
+          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" && echo "FIXED config" || echo "NO config"
+          echo "=== DOWNLOAD WRAPPER ==="
+          mkdir -p platforms/android/gradle/wrapper/
+          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradlew" -o platforms/android/gradlew && chmod +x platforms/android/gradlew && echo "gradlew OK" || echo "gradlew FAIL"
+          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradle/wrapper/gradle-wrapper.jar" -o platforms/android/gradle/wrapper/gradle-wrapper.jar && echo "wrapper jar OK" || echo "wrapper jar FAIL"
+          echo "=== GRADLEW VERSION ==="
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "=== CDV-CONFIG ==="
+          cat platforms/android/cdv-gradle-config.json
+          echo "=== BUILD DIRECT ==="
+          cd platforms/android && ./gradlew assembleDebug --no-daemon --stacktrace 2>&1
+          echo "BUILD EXIT CODE: $?"
+          echo "=== APK ==="
+          find . -type f -name "*.apk" 2>/dev/null
+          find . -type d -name outputs 2>/dev/null
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
