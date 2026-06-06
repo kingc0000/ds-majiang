@@ -26,49 +26,60 @@ jobs:
         run: npm install -g cordova@13
       - name: Platform add android@10
         working-directory: ./client/cordova
-        run: rm -rf platforms plugins && cordova platform add android@10
-      - name: Set AGP 7.3.1 and SDK 33
+        run: rm -rf platforms && cordova platform add android@10
+      - name: Set AGP 7.3.1 SDK 33
         working-directory: ./client/cordova
         run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-      - name: Setup Gradle wrapper 7.5.1 and build
+      - name: Setup wrapper 7.5.1
         working-directory: ./client/cordova
         run: |
-          export ANDROID_HOME=/usr/local/lib/android/sdk
-          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
-          # Create wrapper
+          set +e
           mkdir -p platforms/android/gradle/wrapper
-          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradlew" -o platforms/android/gradlew
-          chmod +x platforms/android/gradlew
-          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradle/wrapper/gradle-wrapper.jar" -o platforms/android/gradle/wrapper/gradle-wrapper.jar
+          curl -sL --connect-timeout 10 "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradlew" -o platforms/android/gradlew || echo "CURL_GRADLEW_FAILED"
+          chmod +x platforms/android/gradlew 2>/dev/null || echo "CHMOD_FAILED"
+          curl -sL --connect-timeout 10 "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradle/wrapper/gradle-wrapper.jar" -o platforms/android/gradle/wrapper/gradle-wrapper.jar || echo "CURL_JAR_FAILED"
           echo "distributionBase=GRADLE_USER_HOME" > platforms/android/gradle/wrapper/gradle-wrapper.properties
           echo "distributionPath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.5.1-bin.zip" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
           echo "networkTimeout=10000" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "validateDistributionUrl=true" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
           echo "zipStoreBase=GRADLE_USER_HOME" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
           echo "zipStorePath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          # Remove system gradle
-          sudo rm -f /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true
-          # Build
-          cordova build android --debug 2>&1 | tee /tmp/build-log.txt
-      - name: Show build output tree
-        if: always()
+          ls -la platforms/android/gradlew 2>/dev/null || echo "NO_GRADLEW"
+      - name: Build
+        working-directory: ./client/cordova
         run: |
-          echo "=== Find APK ==="
-          find . -name "*.apk" -type f 2>/dev/null || echo "NO APK"
-          echo "=== Build outputs ==="
-          find ./client/cordova -path "*/build/outputs/*" -maxdepth 8 2>/dev/null || echo "NO outputs"
-      - name: Upload APK
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ds-majiang-apk
-          path: |
-            ./client/cordova/platforms/android/app/build/outputs/**/*.apk
-            **/*.apk
+          set +e
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          sudo rm -f /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true
+          echo "Starting cordova build..."
+          cordova build android --debug > /tmp/build-log.txt 2>&1
+          BUILD_EXIT=$?
+          echo "BUILD_EXIT=$BUILD_EXIT" >> /tmp/build-log.txt
+          find . -name "*.apk" -type f >> /tmp/build-log.txt 2>/dev/null || true
+          echo "DONE" >> /tmp/build-log.txt
+          exit $BUILD_EXIT
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
           path: /tmp/build-log.txt
+      - name: Find and upload APK
+        if: always()
+        run: |
+          APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
+          if [ -n "$APK" ]; then
+            echo "Found APK at: $APK"
+            echo "APK_PATH=$APK" >> $GITHUB_ENV
+          else
+            echo "NO APK FOUND ANYWHERE"
+            find /home/runner/work -name "*.apk" -type f 2>/dev/null || true
+            find /home/runner -name "*.apk" -type f 2>/dev/null || true
+          fi
+      - name: Upload APK
+        if: env.APK_PATH != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ds-majiang-apk
+          path: ${{ env.APK_PATH }}
