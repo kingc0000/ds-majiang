@@ -60,5 +60,4 @@ jobs:
         with:
           name: ds-majiang-apk
           path: |
-            app/build/outputs/apk/**/*.apk
-            build/outputs/apk/**/*.apk
+            client/cordova/platforms/android/app/build/outputs/apk/debug/*.apk
