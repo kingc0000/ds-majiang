@@ -52,11 +52,17 @@ jobs:
           export ANDROID_HOME=/usr/local/lib/android/sdk
           export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
           sudo rm -f /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true
+          env | grep ANDROID
+          echo "Checking wrapper..."
+          ls -la platforms/android/gradlew
+          ls -la platforms/android/gradle/wrapper/
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties
           echo "Starting cordova build..."
-          cordova build android --debug > /tmp/build-log.txt 2>&1
-          BUILD_EXIT=$?
+          cordova build android --debug 2>&1 | tee /tmp/build-log.txt
+          BUILD_EXIT=${PIPESTATUS[0]}
+          echo "BUILD_EXIT=$BUILD_EXIT"
           echo "BUILD_EXIT=$BUILD_EXIT" >> /tmp/build-log.txt
-          find . -name "*.apk" -type f >> /tmp/build-log.txt 2>/dev/null || true
+          find . -name "*.apk" -type f 2>/dev/null | tee -a /tmp/build-log.txt
           echo "DONE" >> /tmp/build-log.txt
           exit $BUILD_EXIT
       - name: Upload build log
