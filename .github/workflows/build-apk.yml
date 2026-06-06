@@ -56,7 +56,16 @@ jobs:
 
       - name: Assemble debug
         working-directory: ./client/cordova
-        run: cd platforms/android && ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          cd platforms/android && ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee $GITHUB_WORKSPACE/gradle-log.txt
+          echo "GRADLE_EXIT=${PIPESTATUS[0]}"
+
+      - name: Upload gradle log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-log
+          path: gradle-log.txt
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
