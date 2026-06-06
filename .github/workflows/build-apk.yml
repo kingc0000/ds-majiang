@@ -52,5 +52,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ds-majiang-apk
-          path: home/runner/work/ds-majiang/ds-majiang/client/cordova/platforms/android/app/build/outputs/**/*.apk
-          if-no-files-found: warn
+          path: |
+            **/app/build/outputs/**/*.apk
+            **/*.apk
