@@ -22,7 +22,6 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          # Find Java 17 (Gradle 9.5.1 requires JVM 17+)
           for j in /usr/lib/jvm/java-17* /usr/lib/jvm/temurin-17* /usr/lib/jvm/msopenjdk-17*; do
             if [ -d "$j" ]; then
               echo "JAVA_HOME=$j" >> $GITHUB_ENV
@@ -30,7 +29,6 @@ jobs:
               break
             fi
           done
-          echo "Default JAVA_HOME was: $JAVA_HOME"
 
       - name: Install Cordova
         run: npm install -g cordova@13 2>&1
@@ -38,52 +36,21 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          LOGFILE=$GITHUB_WORKSPACE/build-log.txt
-          touch $LOGFILE
           set -e
-          echo "=== CLEAN ===" | tee -a $LOGFILE
           rm -rf platforms/android/
           rm -f platforms/platforms.json
-          echo "=== JAVA ===" | tee -a $LOGFILE
-          java -version 2>&1 | tee -a $LOGFILE
-          echo "=== SDK ===" | tee -a $LOGFILE
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" | tee -a $LOGFILE
-          ls $ANDROID_SDK_ROOT/platforms/ 2>&1 | tee -a $LOGFILE
-          ls $ANDROID_SDK_ROOT/build-tools/ 2>&1 | tee -a $LOGFILE
-          echo "=== ADD PLATFORM ===" | tee -a $LOGFILE
-          cordova platform add android@10 2>&1 | tee -a $LOGFILE
-          echo "=== FIX WRAPPER ===" | tee -a $LOGFILE
-          # Gradle 9.5.1 is incompatible with AGP 4.2.2; force Gradle 7.1.1
-          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 | tee -a $LOGFILE
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 | tee -a $LOGFILE
-          echo "=== FIX CONFIG ===" | tee -a $LOGFILE
-          python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)" 2>&1 | tee -a $LOGFILE
-          cat platforms/android/cdv-gradle-config.json | tee -a $LOGFILE
-          echo "=== BUILD ===" | tee -a $LOGFILE
-          cordova build android --debug 2>&1 | tee -a $LOGFILE
-          echo "=== APK ===" | tee -a $LOGFILE
-          find . -name "*.apk" -type f 2>&1 | tee -a $LOGFILE
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build-log.txt
-
-      - name: Find and upload APK
-        if: success()
-        run: |
-          echo "=== SEARCH APK ==="
-          find client/cordova/platforms/android -type f \( -name "*.apk" -o -name "*.aab" \) 2>&1
-          echo "=== BUILD OUTPUTS DIR ==="
-          find client/cordova/platforms/android/app/build -type d 2>&1 | head -30
-          echo "=== BUILD FILES ==="
-          find client/cordova/platforms/android/app/build -type f 2>&1 | head -50
+          cordova platform add android@10 2>&1
+          # Fix wrapper to use Gradle 7.1.1 (AGP 4.2.2 compatible)
+          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
+          # Fix SDK config
+          python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)"
+          cordova build android --debug 2>&1
 
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ds-majiang-apk
-          path: /tmp/app.apk
+          path: |
+            client/cordova/platforms/android/app/build/outputs/apk/debug/*.apk
+            client/cordova/platforms/android/app/build/outputs/apk/*.apk
+            client/cordova/platforms/android/**/*.apk
