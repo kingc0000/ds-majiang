@@ -36,11 +36,13 @@ jobs:
           curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradlew" -o platforms/android/gradlew
           chmod +x platforms/android/gradlew
           curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradle/wrapper/gradle-wrapper.jar" -o platforms/android/gradle/wrapper/gradle-wrapper.jar
+          echo "distributionBase=GRADLE_USER_HOME" > platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.5.1-bin.zip" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStoreBase=GRADLE_USER_HOME" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStorePath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
           cd platforms/android
-          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.5.1-bin.zip|g' gradle/wrapper/gradle-wrapper.properties || true
-          python3 -c "import json;c=json.load(open('cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('cdv-gradle-config.json','w'),indent=4)" || true
-          ls gradle/wrapper/
-          cat gradle/wrapper/gradle-wrapper.properties || true
+          python3 -c "import json;c=json.load(open('cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('cdv-gradle-config.json','w'),indent=4)"
           ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1
           echo "GRADLE_EXIT=$?"
 
