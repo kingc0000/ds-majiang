@@ -36,10 +36,8 @@ jobs:
           cordova platform add android@10 2>&1
           cordova build android --debug 2>&1
 
-      - name: Find and upload APK
-        working-directory: ./client/cordova
-        run: |
-          echo "=== Searching for APK ==="
-          find . -name "*.apk" 2>&1
-          echo "=== Build outputs ==="
-          find platforms/android/app/build/outputs -type f 2>&1 || echo "no outputs dir"
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ds-majiang-apk
+          path: client/cordova/platforms/android/app/build/outputs/apk/**/*.apk
