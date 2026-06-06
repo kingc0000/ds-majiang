@@ -44,21 +44,26 @@ jobs:
           rm -rf platforms/android/ platforms/platforms.json
           cordova platform add android@10
 
-      - name: Generate Gradle wrapper
+      - name: Check wrapper
         working-directory: ./client/cordova/platforms/android
         run: |
-          echo "=== CREATE GRADLEW ==="
-          # Download standard gradlew script
-          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.1.1/gradlew" -o gradlew 2>&1
-          chmod +x gradlew
-          # Download gradle-wrapper.jar from Gradle distribution
-          curl -sL "https://services.gradle.org/distributions/gradle-7.1.1-bin.zip" -o /tmp/gradle.zip 2>&1
-          unzip -o -j /tmp/gradle.zip "gradle-7.1.1/lib/gradle-wrapper-7.1.1.jar" -d gradle/wrapper/ 2>&1 || \
-            unzip -o -j /tmp/gradle.zip "gradle-7.1.1/lib/gradle-wrapper*.jar" -d gradle/wrapper/ 2>&1 || \
-            echo "WRAPPER JAR EXTRACT FAILED"
+          echo "=== FILES ==="
+          ls -la gradlew 2>&1 || echo "NO GRADLEW"
+          ls -la gradle/wrapper/ 2>&1 || echo "NO WRAPPER DIR"
+          cat gradle/wrapper/gradle-wrapper.properties 2>&1 || echo "NO PROPS"
+          # If no gradlew, download it + wrapper jar
+          if [ ! -f gradlew ]; then
+            echo "Downloading gradlew..."
+            curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.1.1/gradlew" -o gradlew
+            chmod +x gradlew
+            curl -sL "https://services.gradle.org/distributions/gradle-7.1.1-bin.zip" -o /tmp/gradle.zip
+            mkdir -p gradle/wrapper
+            unzip -o -j /tmp/gradle.zip "gradle-*/lib/gradle-wrapper*.jar" -d gradle/wrapper/ || \
+              echo "EXTRACT FAILED"
+          fi
+          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' gradle/wrapper/gradle-wrapper.properties 2>/dev/null || true
+          echo "=== AFTER ==="
           ls -la gradlew gradle/wrapper/
-          # Ensure properties points to 7.1.1
-          sed -i 's|gradle-[0-9.]*bin.zip|gradle-7.1.1-bin.zip|g' gradle/wrapper/gradle-wrapper.properties
           head -3 gradle/wrapper/gradle-wrapper.properties
 
       - name: Fix SDK config
