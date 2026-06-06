@@ -29,74 +29,24 @@ jobs:
         working-directory: ./client/cordova
         run: rm -rf platforms/android platforms/platforms.json && cordova platform add android@10
 
-      - name: Download gradlew
+      - name: Setup wrapper and build
         working-directory: ./client/cordova
         run: |
           mkdir -p platforms/android/gradle/wrapper
           curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradlew" -o platforms/android/gradlew
           chmod +x platforms/android/gradlew
           curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.5.1/gradle/wrapper/gradle-wrapper.jar" -o platforms/android/gradle/wrapper/gradle-wrapper.jar
-
-      - name: Create gradle wrapper
-        working-directory: ./client/cordova
-        run: |
-          echo "distributionBase=GRADLE_USER_HOME" > platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "distributionPath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.5.1-bin.zip" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "zipStoreBase=GRADLE_USER_HOME" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          echo "zipStorePath=wrapper/dists" >> platforms/android/gradle/wrapper/gradle-wrapper.properties
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties
-
-      - name: Fix AGP version
-        working-directory: ./client/cordova
-        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-
-      - name: Assemble debug
-        working-directory: ./client/cordova
-        run: |
-          cd platforms/android && ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee $GITHUB_WORKSPACE/gradle-log.txt
-          echo "GRADLE_EXIT=${PIPESTATUS[0]}"
-
-      - name: Find APK
-        if: always()
-        working-directory: ./client/cordova
-        run: |
-          echo "=== BUILD DIR ==="
-          find platforms/android/app/build -maxdepth 5 -type d 2>/dev/null || true
-          echo "=== INTERMEDIATES ==="
-          ls -la platforms/android/app/build/intermediates/apk/ 2>/dev/null || true
-          echo "=== OUTPUTS ==="
-          ls -la platforms/android/app/build/outputs/ 2>/dev/null || true
-          ls -la platforms/android/app/build/outputs/apk/ 2>/dev/null || true
-          echo "=== ALL APK ==="
-          find . -name "*.apk" -type f 2>/dev/null || true
-          echo "=== APP BUILD ==="
-          ls -la platforms/android/app/build/ 2>/dev/null || true
-          # Copy APK if found
-          APK_FILE=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
-          if [ -n "$APK_FILE" ]; then
-            cp "$APK_FILE" "$GITHUB_WORKSPACE/app.apk"
-            echo "COPIED: $APK_FILE"
-          else
-            echo "=== SEARCH EVERYWHERE ==="
-            find /home -name "*.apk" -maxdepth 6 -type f 2>/dev/null | head -10 || true
-            find /tmp -name "*.apk" -type f 2>/dev/null | head -5 || true
-            find /root -name "*.apk" -type f 2>/dev/null | head -5 || true
-            echo "=== GRADLE CACHE ==="
-            ls -la ~/.gradle/caches/ 2>/dev/null | head -5 || true
-            echo "=== GRADLE LOG TAIL ==="
-            tail -50 $GITHUB_WORKSPACE/gradle-log.txt 2>/dev/null || true
-
-      - name: Upload gradle log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-log
-          path: gradle-log.txt
+          cd platforms/android
+          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.5.1-bin.zip|g' gradle/wrapper/gradle-wrapper.properties || true
+          python3 -c "import json;c=json.load(open('cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('cdv-gradle-config.json','w'),indent=4)" || true
+          ls gradle/wrapper/
+          cat gradle/wrapper/gradle-wrapper.properties || true
+          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1
+          echo "GRADLE_EXIT=$?"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ds-majiang-apk
-          path: /home/runner/work/ds-majiang/ds-majiang/*.apk
+          path: home/runner/work/ds-majiang/ds-majiang/client/cordova/platforms/android/app/build/outputs/**/*.apk
           if-no-files-found: warn
