@@ -30,17 +30,36 @@ jobs:
       - name: Set AGP 7.3.1 SDK 33
         working-directory: ./client/cordova
         run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-      - name: Download and run Gradle 7.5.1
+      - name: Download and run Gradle
         working-directory: ./client/cordova/platforms/android
         run: |
-          echo "Downloading Gradle 7.5.1..."
-          curl -sL -o /tmp/gradle.zip "https://services.gradle.org/distributions/gradle-7.5.1-bin.zip"
-          unzip -q /tmp/gradle.zip -d /tmp/
-          /tmp/gradle-7.5.1/bin/gradle --version 2>&1 | head -4
-          echo "Running gradle assembleDebug..."
+          set +e
+          echo "=== Step 1: Download Gradle 7.5.1 ==="
+          curl --retry 3 --retry-delay 5 -sL -o /tmp/gradle.zip "https://services.gradle.org/distributions/gradle-7.5.1-bin.zip"
+          CURL_EXIT=$?
+          echo "Curl exit: $CURL_EXIT"
+          ls -la /tmp/gradle.zip 2>/dev/null || echo "NO ZIP"
+          file /tmp/gradle.zip 2>/dev/null
+          echo "=== Step 2: Extract ==="
+          unzip -o -q /tmp/gradle.zip -d /tmp/ 2>&1
+          UNZIP_EXIT=$?
+          echo "Unzip exit: $UNZIP_EXIT"
+          ls /tmp/gradle-7.5.1/bin/gradle 2>/dev/null || echo "NO GRADLE BINARY"
+          echo "=== Step 3: Check version ==="
+          /tmp/gradle-7.5.1/bin/gradle --version 2>&1 | head -5
+          echo "=== Step 4: Build ==="
           export ANDROID_HOME=/usr/local/lib/android/sdk
           export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
           /tmp/gradle-7.5.1/bin/gradle assembleDebug --no-daemon 2>&1
+          BUILD_EXIT=$?
+          echo "Build exit: $BUILD_EXIT"
+          exit $BUILD_EXIT
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: /tmp/gradle.zip
       - name: Find APK
         if: always()
         run: |
