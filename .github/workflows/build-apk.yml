@@ -61,11 +61,18 @@ jobs:
         working-directory: ./client/cordova
         continue-on-error: true
         run: |
+          set -x
+          echo "=== BUILD.GRADLE ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
+          head -30 platforms/android/app/build.gradle 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt
+          echo "=== ROOT BUILD.GRADLE ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
+          head -20 platforms/android/build.gradle 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt
           echo "=== REQUIREMENTS ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
           cordova requirements android 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt
-          echo "=== BUILD ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
-          cordova build android --debug 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt; EC=${PIPESTATUS[0]}
-          echo "BUILD_EXIT_CODE=${EC}" | tee -a $GITHUB_WORKSPACE/build-log.txt
+          echo "=== BUILD VIA GRADLE ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
+          cd platforms/android && ./gradlew assembleDebug 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt; EC=${PIPESTATUS[0]}
+          echo "GRADLE_EXIT_CODE=${EC}" | tee -a $GITHUB_WORKSPACE/build-log.txt
+          echo "=== APK ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
+          find app/build -name "*.apk" -type f 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt
 
       - name: Find APK
         working-directory: ./client/cordova
