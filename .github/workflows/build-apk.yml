@@ -30,34 +30,24 @@ jobs:
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
 
       - name: Install Cordova
-        run: npm install -g cordova@13 2>&1
+        run: npm install -g cordova@13
 
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          exec > $GITHUB_WORKSPACE/build-log.txt 2>&1
-          set -ex
-          rm -rf platforms/android/
-          rm -f platforms/platforms.json
-          echo "=== PLATFORM ADD ==="
+          set -e
+          rm -rf platforms/android/ platforms/platforms.json
+          echo 'STEP: cordova platform add android@10'
           cordova platform add android@10
-          echo "=== FIX CONFIG ==="
-          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo 'STEP: fix wrapper'
+          sed -i 's|gradle-[0-9.]*bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo 'STEP: fix config'
           python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; c['AGP_VERSION']='7.0.4'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)"
-          cat platforms/android/cdv-gradle-config.json
-          echo "=== BUILD ==="
-          cordova build android --debug || echo "BUILD_EXIT_CODE=$?"
-          echo "=== FIND APK ==="
-          find . -type f -name "*.apk" -o -name "*.aab"
-          find platforms -type d 2>/dev/null | head -40
-          echo "=== BUILD OUTPUTS ==="
-          find platforms/android/app/build -type f 2>/dev/null | head -40 || echo "no build outputs"
-          echo "=== DONE ==="
+          echo 'STEP: build'
+          cordova build android --debug
+          echo 'STEP: find apk'
+          find . -type f -name "*.apk"
 
       - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build-log.txt
+        if: failure()
+        run: echo "Build failed, check annotations"
