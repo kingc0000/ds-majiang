@@ -50,6 +50,8 @@ jobs:
         working-directory: ./client/cordova
         run: |
           set +e
+          # Remove system gradle so cordova uses our wrapper
+          rm -f /usr/share/gradle-9.5.1/bin/gradle /usr/bin/gradle 2>/dev/null
           cordova build android --debug > /tmp/cordova-build.log 2>&1
           CORDOVA_EXIT=$?
           echo "CORDOVA_EXIT=$CORDOVA_EXIT" >> /tmp/cordova-build.log
