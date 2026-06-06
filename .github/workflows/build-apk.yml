@@ -51,19 +51,15 @@ jobs:
           ls -la gradlew 2>&1 || echo "NO GRADLEW"
           ls -la gradle/wrapper/ 2>&1 || echo "NO WRAPPER DIR"
           cat gradle/wrapper/gradle-wrapper.properties 2>&1 || echo "NO PROPS"
-          # If no gradlew, download it + wrapper jar
           if [ ! -f gradlew ]; then
-            echo "Downloading gradlew..."
+            echo "=== DOWNLOAD ==="
             curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.1.1/gradlew" -o gradlew
+            curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.1.1/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
             chmod +x gradlew
-            curl -sL "https://services.gradle.org/distributions/gradle-7.1.1-bin.zip" -o /tmp/gradle.zip
-            mkdir -p gradle/wrapper
-            unzip -o -j /tmp/gradle.zip "gradle-*/lib/gradle-wrapper*.jar" -d gradle/wrapper/ || \
-              echo "EXTRACT FAILED"
           fi
-          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' gradle/wrapper/gradle-wrapper.properties 2>/dev/null || true
           echo "=== AFTER ==="
           ls -la gradlew gradle/wrapper/
+          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' gradle/wrapper/gradle-wrapper.properties
           head -3 gradle/wrapper/gradle-wrapper.properties
 
       - name: Fix SDK config
