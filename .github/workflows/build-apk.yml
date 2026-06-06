@@ -61,8 +61,11 @@ jobs:
         working-directory: ./client/cordova
         continue-on-error: true
         run: |
-          cordova build android --debug 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt
-          echo "EXIT_CODE=$?" | tee -a $GITHUB_WORKSPACE/build-log.txt
+          echo "=== REQUIREMENTS ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
+          cordova requirements android 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt
+          echo "=== BUILD ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
+          cordova build android --debug 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt; EC=${PIPESTATUS[0]}
+          echo "BUILD_EXIT_CODE=${EC}" | tee -a $GITHUB_WORKSPACE/build-log.txt
 
       - name: Find APK
         working-directory: ./client/cordova
