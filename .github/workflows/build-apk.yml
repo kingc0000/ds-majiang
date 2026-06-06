@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -20,10 +23,6 @@ jobs:
         run: |
           echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
-          echo "=== Available build-tools ==="
-          ls /usr/local/lib/android/sdk/build-tools/
-          echo "=== Available platforms ==="
-          ls /usr/local/lib/android/sdk/platforms/
       - name: Install Cordova CLI
         run: npm install -g cordova@13
       - name: Setup platform
@@ -32,8 +31,6 @@ jobs:
           rm -rf platforms
           cordova platform add android@10 2>&1 | tail -5
           python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['AGP_VERSION']='7.3.1';c['SDK_VERSION']=33;c['MIN_BUILD_TOOLS_VERSION']='30.0.3';c['BUILD_TOOLS_VERSION']='34.0.0';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-          echo "=== Config check ==="
-          cat platforms/android/cdv-gradle-config.json
       - name: Download Gradle 7.5.1
         run: |
           curl -sL -o /tmp/gradle-7.5.1-bin.zip "https://services.gradle.org/distributions/gradle-7.5.1-bin.zip"
@@ -42,7 +39,6 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova/platforms/android
         run: |
-          set -o pipefail
           gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee $GITHUB_WORKSPACE/build-log.txt
       - name: Report build error
         if: failure()
@@ -61,3 +57,12 @@ jobs:
           name: ds-majiang-apk
           path: |
             client/cordova/platforms/android/app/build/outputs/apk/debug/*.apk
+      - name: Create Release
+        if: success() && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}-${{ github.sha }}
+          name: "Build #${{ github.run_number }}"
+          body: "Auto-built APK from commit ${{ github.sha }}"
+          files: client/cordova/platforms/android/app/build/outputs/apk/debug/*.apk
+          make_latest: true
