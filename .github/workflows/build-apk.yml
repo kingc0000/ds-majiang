@@ -21,7 +21,9 @@ jobs:
         with:
           node-version: '18'
       - name: Setup Android SDK
-        run: echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV && echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
       - name: Install Cordova CLI
         run: npm install -g cordova@13
       - name: Platform add android@10
@@ -30,48 +32,38 @@ jobs:
       - name: Set AGP 7.3.1 SDK 33
         working-directory: ./client/cordova
         run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-      - name: Download and run Gradle
+      - name: Force Gradle clean + build with system tools
         working-directory: ./client/cordova/platforms/android
         run: |
           set +e
-          echo "=== Step 1: Download Gradle 7.5.1 ==="
-          curl --retry 3 --retry-delay 5 -sL -o /tmp/gradle.zip "https://services.gradle.org/distributions/gradle-7.5.1-bin.zip"
-          CURL_EXIT=$?
-          echo "Curl exit: $CURL_EXIT"
-          ls -la /tmp/gradle.zip 2>/dev/null || echo "NO ZIP"
-          file /tmp/gradle.zip 2>/dev/null
-          echo "=== Step 2: Extract ==="
-          unzip -o -q /tmp/gradle.zip -d /tmp/ 2>&1
-          UNZIP_EXIT=$?
-          echo "Unzip exit: $UNZIP_EXIT"
-          ls /tmp/gradle-7.5.1/bin/gradle 2>/dev/null || echo "NO GRADLE BINARY"
-          echo "=== Step 3: Check version ==="
-          /tmp/gradle-7.5.1/bin/gradle --version 2>&1 | head -5
-          echo "=== Step 4: Build ==="
-          export ANDROID_HOME=/usr/local/lib/android/sdk
-          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
-          /tmp/gradle-7.5.1/bin/gradle assembleDebug --no-daemon 2>&1
+          echo "=== Java ==="
+          java -version 2>&1
+          echo "=== ANDROID_HOME ==="
+          echo $ANDROID_HOME
+          ls $ANDROID_HOME/platforms/ 2>/dev/null
+          echo "=== System Gradle ==="
+          which gradle 2>/dev/null || echo "No system gradle"
+          gradle --version 2>&1 || echo "gradle not available"
+          echo "=== Make gradlew executable ==="
+          chmod +x gradlew 2>/dev/null
+          echo "=== gradlew --version ==="
+          ./gradlew --version 2>&1 | head -10
+          echo "=== Clean ==="
+          ./gradlew clean --no-daemon 2>&1
+          echo "=== assembleDebug ==="
+          ./gradlew assembleDebug --no-daemon 2>&1
           BUILD_EXIT=$?
-          echo "Build exit: $BUILD_EXIT"
+          echo "BUILD_EXIT=$BUILD_EXIT"
+          echo "=== APK search ==="
+          find / -name "*.apk" -type f 2>/dev/null | head -10
+          find . -name "*.apk" -type f 2>/dev/null
           exit $BUILD_EXIT
-      - name: Upload build log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: /tmp/gradle.zip
-      - name: Find APK
-        if: always()
-        run: |
-          echo "=== Search APK ==="
-          find . -name "*.apk" -type f 2>/dev/null || echo "None found"
-          echo "=== Build outputs ==="
-          find ./client/cordova -path "*/build/outputs/apk/*" 2>/dev/null || true
       - name: Upload APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ds-majiang-apk
           path: |
-            ./client/cordova/platforms/android/app/build/outputs/**/*.apk
             **/*.apk
+            app/build/outputs/**/*.apk
+            /home/runner/work/**/*.apk
