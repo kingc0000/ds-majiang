@@ -62,9 +62,13 @@ jobs:
       - name: Find and upload APK
         if: success()
         run: |
-          find client/cordova -name "*.apk" -type f -exec cp {} /tmp/app.apk \;
-          ls -la /tmp/app.apk 2>/dev/null || echo "no apk found"
-          find client/cordova/platforms -type d -maxdepth 5 2>/dev/null | head -30
+          find client/cordova -name "*.apk" -o -name "*.aab" -type f 2>&1
+          ls -la client/cordova/platforms/android/app/build/outputs/ 2>&1 || echo "no outputs"
+          ls -la client/cordova/platforms/android/app/build/outputs/apk/ 2>&1 || echo "no apk dir"
+          ls -la client/cordova/platforms/android/app/build/outputs/bundle/ 2>&1 || echo "no bundle dir"
+          find client/cordova/platforms/android -name "*.apk" -o -name "*.aab" 2>&1 | head -20
+          # Also check if there are any build outputs at all
+          find client/cordova/platforms/android/app/build -type f 2>&1 | head -30
 
       - name: Upload APK
         if: success()
