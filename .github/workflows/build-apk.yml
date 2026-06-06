@@ -40,14 +40,7 @@ jobs:
       - name: Create gradle wrapper
         working-directory: ./client/cordova
         run: |
-          echo "=== CREATE WRAPPER PROPERTIES ==="
-          cat > platforms/android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-7.5.1-bin.zip
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          EOF
+          printf 'distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\ndistributionUrl=https\\://services.gradle.org/distributions/gradle-7.5.1-bin.zip\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\n' > platforms/android/gradle/wrapper/gradle-wrapper.properties
           cat platforms/android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Fix AGP version
