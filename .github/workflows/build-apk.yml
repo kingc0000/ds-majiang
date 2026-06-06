@@ -30,11 +30,14 @@ jobs:
       - name: Configure Gradle settings (AGP, SDK, build-tools)
         working-directory: ./client/cordova
         run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['AGP_VERSION']='7.3.1';c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='30.0.3';c['BUILD_TOOLS_VERSION']='34.0.0';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
+      - name: Set Gradle wrapper to 7.6.3 (AGP 7.3.1 requires 7.2+)
+        working-directory: ./client/cordova/platforms/android
+        run: echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-7.6.3-all.zip" > gradle/wrapper/gradle-wrapper.properties
       - name: Build APK
         working-directory: ./client/cordova/platforms/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon 2>&1
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1
       - name: Upload APK
         if: always()
         uses: actions/upload-artifact@v4
