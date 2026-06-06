@@ -34,7 +34,8 @@ jobs:
       - name: Build
         working-directory: ./client/cordova
         run: |
-          exec 2>&1
+          LOG=$GITHUB_WORKSPACE/build-log.txt
+          exec > >(tee -a "$LOG") 2>&1
           set +e
           rm -rf platforms/android/ platforms/platforms.json
           echo "=== PLATFORM ADD ==="
@@ -57,9 +58,17 @@ jobs:
             echo "DIRECT_EXIT=$?"
             find . -name "*.apk" -type f 2>/dev/null
           else
+            ls -la platforms/android/ 2>/dev/null
             echo "No gradlew found"
           fi
           echo "=== DONE ==="
+
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build-log.txt
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
