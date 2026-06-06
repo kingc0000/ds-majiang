@@ -21,7 +21,9 @@ jobs:
         with:
           node-version: '18'
       - name: Setup Android SDK
-        run: echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV && echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
       - name: Install Cordova CLI
         run: npm install -g cordova@13
       - name: Platform add android@10
@@ -29,45 +31,27 @@ jobs:
         run: |
           rm -rf platforms
           cordova platform add android@10
-          echo "=== Check platform ==="
-          ls platforms/android/
-          echo "=== gradlew ==="
-          ls -la platforms/android/gradlew && echo "GRADLEW_EXISTS" || echo "NO_GRADLEW"
-          echo "=== wrapper properties ==="
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null || echo "NO_WRAPPER_PROPS"
+          echo "=== Check files ==="
+          pwd
+          ls -la platforms/android/gradlew && echo "GRADLEW_OK" || echo "GRADLEW_MISSING"
+          ls -la platforms/android/gradle/wrapper/gradle-wrapper.jar && echo "JAR_OK" || echo "JAR_MISSING"
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null || echo "NO_PROPS"
       - name: Set AGP 7.3.1 SDK 33
         working-directory: ./client/cordova
-        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" && cat platforms/android/cdv-gradle-config.json
-      - name: Gradle clean and build
+        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
+      - name: Setup Gradle 7.5.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "7.5.1"
+      - name: Build APK
         working-directory: ./client/cordova/platforms/android
         run: |
-          set +e
-          echo "1: java check"
-          java -version 2>&1
-          echo "2: env"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "PWD=$PWD"
-          echo "3: check dir"
-          ls -la .
-          echo "4: gradlew check"
-          ls -la gradlew 2>/dev/null || echo "GRADLEW_MISSING"
-          which gradlew 2>/dev/null || echo "which gradlew MISSING"
-          echo "5: try gradlew"
-          ./gradlew --version 2>&1
-          G1=$?
-          echo "6: gradlew exit=$G1"
-          echo "7: clean"
-          ./gradlew clean --no-daemon 2>&1
-          G2=$?
-          echo "8: clean exit=$G2"
-          echo "9: build"
-          ./gradlew assembleDebug --no-daemon 2>&1
-          G3=$?
-          echo "10: exit=$G3"
-          echo "11: find apk"
-          find . -name "*.apk" -type f 2>/dev/null
-          echo "12: done all"
-          exit $G3
+          gradle assembleDebug --no-daemon 2>&1 || true
+          echo "EXIT=$?"
+          echo "=== Find APK ==="
+          find . -name "*.apk" -type f 2>/dev/null || echo "None"
+          echo "=== Build outputs ==="
+          find . -path "*/build/outputs/*" 2>/dev/null || echo "No outputs"
       - name: Upload APK
         if: always()
         uses: actions/upload-artifact@v4
