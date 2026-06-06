@@ -22,7 +22,15 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
+          # Find Java 17 (Gradle 9.5.1 requires JVM 17+)
+          for j in /usr/lib/jvm/java-17* /usr/lib/jvm/temurin-17* /usr/lib/jvm/msopenjdk-17*; do
+            if [ -d "$j" ]; then
+              echo "JAVA_HOME=$j" >> $GITHUB_ENV
+              echo "Found Java 17 at: $j"
+              break
+            fi
+          done
+          echo "Default JAVA_HOME was: $JAVA_HOME"
 
       - name: Install Cordova
         run: npm install -g cordova@13 2>&1
