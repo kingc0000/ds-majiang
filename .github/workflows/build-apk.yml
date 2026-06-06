@@ -47,8 +47,11 @@ jobs:
       - name: Fix Gradle wrapper
         working-directory: ./client/cordova
         run: |
-          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
-          head -5 platforms/android/gradle/wrapper/gradle-wrapper.properties
+          ls -la platforms/android/gradle/wrapper/ 2>&1 || echo "NO wrapper dir"
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 || echo "NO properties file"
+          echo "=== fixing ==="
+          perl -pe 's|gradle-[0-9.]+-bin.zip|gradle-7.1.1-bin.zip|g' -i platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 || true
+          head -5 platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 || true
 
       - name: Fix SDK config
         working-directory: ./client/cordova
