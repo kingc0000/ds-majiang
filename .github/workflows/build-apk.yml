@@ -13,44 +13,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup environment
-        run: |
-          echo "=== Environment ==="
-          echo "JAVA_HOME=$JAVA_HOME"
-          which java
-          java -version 2>&1
-          readlink -f $(which java)
-          # Set JAVA_HOME if not set
-          if [ -z "$JAVA_HOME" ]; then
-            JAVA_DIR=$(dirname $(dirname $(readlink -f $(which java))))
-            echo "JAVA_HOME=$JAVA_DIR" >> $GITHUB_ENV
-            echo "Set JAVA_HOME=$JAVA_DIR"
-          fi
-          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-unset}"
-          echo "ANDROID_HOME=${ANDROID_HOME:-unset}"
-
       - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Setup Android SDK
+      - name: Setup Android SDK env vars
         run: |
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          echo "=== Build-tools pre-installed ==="
-          ls $SDK/build-tools/ 2>/dev/null || echo "none"
-          ls $SDK/platforms/ 2>/dev/null || echo "no platforms"
-          echo "=== Java for sdkmanager ==="
-          java -version 2>&1
-          echo "=== Running sdkmanager ==="
-          yes | $SDK/cmdline-tools/latest/bin/sdkmanager \
-            "build-tools;30.0.3" \
-            "platforms;android-30" \
-            --sdk_root=$SDK 2>&1 || echo "SDKMANAGER_FAILED"
-          echo "=== After install ==="
+          echo "=== Pre-installed build-tools ==="
           ls $SDK/build-tools/ 2>/dev/null
+          echo "=== Pre-installed platforms ==="
+          ls $SDK/platforms/ 2>/dev/null
+          echo "=== Java ==="
+          java -version 2>&1
 
       - name: Install Cordova
         run: npm install -g cordova@13 2>&1
@@ -58,29 +36,19 @@ jobs:
       - name: Build
         working-directory: ./client/cordova
         run: |
-          set +e
-          echo "=== JAVA_HOME=$JAVA_HOME ==="
-          echo "=== SDK=$ANDROID_SDK_ROOT ==="
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "SDK=$ANDROID_SDK_ROOT"
           ls $ANDROID_SDK_ROOT/build-tools/ 2>/dev/null
-          cordova build android --debug 2>&1 | tee /tmp/cordova-log.txt
-          EXIT_CODE=${PIPESTATUS[0]}
-          echo "CORDOVA_EXIT:$EXIT_CODE" | tee -a /tmp/cordova-log.txt
-          exit $EXIT_CODE
-
-      - name: Upload log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cordova-log
-          path: /tmp/cordova-log.txt
-          retention-days: 7
+          ls $ANDROID_SDK_ROOT/platforms/ 2>/dev/null
+          ls platforms/android/app/ 2>/dev/null | head -3
+          cordova build android --debug 2>&1
 
       - name: Copy APK
         if: success()
         working-directory: ./client/cordova
         run: |
           APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
-          [ -n "$APK" ] && cp "$APK" MajiangGame.apk && exit 0 || exit 1
+          [ -n "$APK" ] && cp "$APK" MajiangGame.apk && ls -la MajiangGame.apk || exit 1
 
       - name: Upload APK
         if: success()
