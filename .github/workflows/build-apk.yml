@@ -28,13 +28,20 @@ jobs:
 
       - name: Build APK
         working-directory: ./client/cordova
-        continue-on-error: true
         run: |
           set +e
+          echo "=== CLEAN ==="
           rm -rf platforms/android/
           rm -f platforms/platforms.json
+          echo "=== ADD PLATFORM ==="
           cordova platform add android@10 2>&1
+          echo "=== PLATFORM EXIT: $? ==="
+          echo "=== BUILD ==="
           cordova build android --debug 2>&1
+          echo "=== BUILD EXIT: $? ==="
+          echo "=== OUTPUTS ==="
+          find platforms/android/app/build -type f 2>&1 || echo "no build dir"
+          find . -name "*.apk" 2>&1 || echo "no apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
