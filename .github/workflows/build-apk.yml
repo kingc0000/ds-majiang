@@ -34,41 +34,22 @@ jobs:
       - name: Build
         working-directory: ./client/cordova
         run: |
-          LOG=$GITHUB_WORKSPACE/build-log.txt
-          exec > >(tee -a "$LOG") 2>&1
+          exec 2>&1
           set +e
           rm -rf platforms/android/ platforms/platforms.json
-          echo "=== PLATFORM ADD ==="
-          cordova platform add android@10 2>&1
-          echo "PLATFORM_ADD_EXIT=$?"
-          ls -la platforms/android/ 2>/dev/null | head -5
-          ls -la platforms/android/gradle/wrapper/ 2>/dev/null | head -5
-          ls -la platforms/android/gradlew 2>/dev/null
-          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null
-          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.0.4';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" 2>/dev/null
-          echo "=== BUILD ==="
-          cordova build android --debug 2>&1
+          echo "STEP1: platform add"
+          cordova platform add android@10
+          echo "PLATFORM_EXIT=$?"
+          echo "STEP2: build"
+          cordova build android --debug
           echo "BUILD_EXIT=$?"
-          echo "=== APK ==="
-          find . -name "*.apk" -type f 2>/dev/null
-          find platforms -type d -name outputs 2>/dev/null
-          echo "=== GRADLEW ==="
-          if [ -x platforms/android/gradlew ]; then
-            cd platforms/android && ./gradlew assembleDebug --info 2>&1
-            echo "DIRECT_EXIT=$?"
-            find . -name "*.apk" -type f 2>/dev/null
-          else
-            ls -la platforms/android/ 2>/dev/null
-            echo "No gradlew found"
-          fi
-          echo "=== DONE ==="
-
-      - name: Upload log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build-log.txt
+          echo "STEP3: find apk"
+          find . -name "*apk" -type f -o -name "*aab" -type f
+          echo "STEP4: outputs dir"
+          ls -la platforms/android/app/build/outputs/ 2>/dev/null
+          ls -la platforms/android/app/build/outputs/apk/ 2>/dev/null
+          ls -la platforms/android/build/outputs/ 2>/dev/null
+          echo "DONE"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
