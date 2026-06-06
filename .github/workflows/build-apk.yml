@@ -59,9 +59,16 @@ jobs:
           name: build-log
           path: build-log.txt
 
+      - name: Find and upload APK
+        if: success()
+        run: |
+          find client/cordova -name "*.apk" -type f -exec cp {} /tmp/app.apk \;
+          ls -la /tmp/app.apk 2>/dev/null || echo "no apk found"
+          find client/cordova/platforms -type d -maxdepth 5 2>/dev/null | head -30
+
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ds-majiang-apk
-          path: client/cordova/platforms/android/app/build/outputs/apk/**/*.apk
+          path: /tmp/app.apk
