@@ -13,12 +13,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Debug - check environment
         run: |
-          echo "JAVA_HOME=$JAVA_HOME"
           java -version 2>&1
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls /usr/local/lib/android/sdk/build-tools/ 2>/dev/null || echo "No build-tools dir"
-          echo "--- SDK platforms ---"
-          ls /usr/local/lib/android/sdk/platforms/ 2>/dev/null
+          ls /usr/local/lib/android/sdk/build-tools/ 2>/dev/null || echo "No build-tools"
+          ls /usr/local/lib/android/sdk/platforms/ 2>/dev/null || echo "No platforms"
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -29,48 +26,42 @@ jobs:
         with:
           node-version: '18'
       - name: Setup Android SDK
-        run: echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV && echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
       - name: Install Cordova CLI
         run: npm install -g cordova@13
-      - name: Debug - Cordova and SDK check
-        run: |
-          echo "Node: $(node -v)"
-          echo "Cordova: $(cordova -v)"
-          echo "SDK platforms:"
-          ls /usr/local/lib/android/sdk/platforms/ 2>/dev/null
-          echo "SDK build-tools:"
-          ls /usr/local/lib/android/sdk/build-tools/ 2>/dev/null
-      - name: Platform add android@10
+      - name: Setup platform and config
         working-directory: ./client/cordova
-        run: rm -rf platforms && cordova platform add android@10 2>&1
-      - name: Configure Gradle settings
-        working-directory: ./client/cordova
-        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['AGP_VERSION']='7.3.1';c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='30.0.3';c['BUILD_TOOLS_VERSION']='34.0.0';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-      - name: Set Gradle 7.6.3 wrapper
-        working-directory: ./client/cordova/platforms/android
-        run: echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.3-all.zip" > gradle/wrapper/gradle-wrapper.properties
-      - name: Debug - check config files
         run: |
-          cat client/cordova/platforms/android/cdv-gradle-config.json
-          echo "---gradle wrapper---"
-          cat client/cordova/platforms/android/gradle/wrapper/gradle-wrapper.properties
+          rm -rf platforms
+          cordova platform add android@10 2>&1
+          echo "=== Configuring Gradle ==="
+          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['AGP_VERSION']='7.3.1';c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='30.0.3';c['BUILD_TOOLS_VERSION']='34.0.0';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
+          echo "=== Checking wrapper dir ==="
+          ls -la platforms/android/gradle/wrapper/ 2>/dev/null
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.3-all.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "=== Wrapper config ==="
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties
+          echo "=== CDV config ==="
+          cat platforms/android/cdv-gradle-config.json
       - name: Build APK
         working-directory: ./client/cordova/platforms/android
         run: |
           set -o pipefail
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee $GITHUB_WORKSPACE/build-log.txt
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build-log.txt
       - name: Upload build log
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
-          path: build-log.txt
+          path: client/cordova/platforms/android/build-log.txt
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ds-majiang-apk
           path: |
-            **/*.apk
+            client/cordova/platforms/android/**/*.apk
             app/build/outputs/**/*.apk
