@@ -36,7 +36,14 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova/platforms/android
         run: |
-          gradle assembleDebug --no-daemon --stacktrace 2>&1
+          set -o pipefail
+          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee $GITHUB_WORKSPACE/build-log.txt
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build-log.txt
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
