@@ -36,14 +36,21 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          set -e
+          set -ex
+          java -version 2>&1
+          which java
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "=== CLEAN ==="
           rm -rf platforms/android/
           rm -f platforms/platforms.json
+          echo "=== ADD PLATFORM ==="
           cordova platform add android@10 2>&1
-          # Fix wrapper to Gradle 7.1.1 (compatible with AGP 4.2.2)
-          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
-          # Fix SDK config
-          python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)"
+          echo "=== WRAPPER ==="
+          ls -la platforms/android/gradle/wrapper/ 2>&1
+          echo "=== FIX ==="
+          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1
+          python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)" 2>&1
+          echo "=== BUILD ==="
           cordova build android --debug 2>&1
 
       - name: Upload APK
