@@ -64,17 +64,17 @@ jobs:
         if: always()
         working-directory: ./client/cordova
         run: |
-          echo "=== GRADLE ASSEMBLEDEBUG OUTPUT ==="
-          cd platforms/android
-          ./gradlew assembleDebug --no-daemon --info 2>&1 | tee $GITHUB_WORKSPACE/gradle-log2.txt
-          echo "GRADLE_EXIT2=$?"
-          echo "=== FULL APK SEARCH ==="
-          find / -name "app-debug.apk" 2>/dev/null
-          find / -name "*.apk" -path "*/platforms/android/*" 2>/dev/null
-          find . -type f -name "*debug*" 2>/dev/null
           echo "=== BUILD DIR ==="
-          ls -la app/build/ 2>/dev/null
-          find app/build -maxdepth 5 -type d 2>/dev/null | head -30
+          find platforms/android/app/build -maxdepth 5 -type d 2>/dev/null
+          echo "=== INTERMEDIATES ==="
+          ls -la platforms/android/app/build/intermediates/apk/ 2>/dev/null
+          echo "=== OUTPUTS ==="
+          ls -la platforms/android/app/build/outputs/ 2>/dev/null
+          ls -la platforms/android/app/build/outputs/apk/ 2>/dev/null
+          echo "=== SDK ==="
+          ls /usr/local/lib/android/sdk/platforms/ 2>/dev/null
+          echo "=== ANDROID ==="
+          ls $ANDROID_HOME/platforms/ 2>/dev/null
 
       - name: Upload gradle log
         if: always()
