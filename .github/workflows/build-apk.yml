@@ -16,41 +16,32 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Setup Node.js 18
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
       - name: Setup Android SDK
         run: |
           echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
       - name: Install Cordova CLI
         run: npm install -g cordova@13
-      - name: Setup platform and config
+      - name: Setup platform
         working-directory: ./client/cordova
         run: |
           rm -rf platforms
-          cordova platform add android@10 2>&1
+          cordova platform add android@10 2>&1 | tail -5
           python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['AGP_VERSION']='7.3.1';c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='30.0.3';c['BUILD_TOOLS_VERSION']='34.0.0';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-          mkdir -p platforms/android/gradle/wrapper
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.3-all.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
+      - name: Download Gradle 7.5.1
+        run: |
+          curl -sL -o /tmp/gradle-7.5.1-bin.zip "https://services.gradle.org/distributions/gradle-7.5.1-bin.zip"
+          unzip -q /tmp/gradle-7.5.1-bin.zip -d /opt
+          echo "/opt/gradle-7.5.1/bin" >> $GITHUB_PATH
       - name: Build APK
         working-directory: ./client/cordova/platforms/android
         run: |
-          set -o pipefail
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build-log.txt
-      - name: Upload build log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: client/cordova/platforms/android/build-log.txt
+          gradle assembleDebug --no-daemon --stacktrace 2>&1
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ds-majiang-apk
           path: |
-            client/cordova/platforms/android/**/*.apk
-            app/build/outputs/**/*.apk
+            app/build/outputs/apk/**/*.apk
+            build/outputs/apk/**/*.apk
