@@ -25,90 +25,44 @@ jobs:
 
       - name: Setup Android SDK
         run: |
-          SDK=/usr/local/lib/android/sdk
-          echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
 
       - name: Install Cordova
         run: npm install -g cordova@13
 
-      - name: Test Java
-        run: java -version
-
-      - name: Test Cordova
-        run: cordova --version
-
-      - name: Test platform add
-        working-directory: ./client/cordova
-        run: |
-          rm -rf platforms/android/ platforms/platforms.json
-          cordova platform add android@10
-
-      - name: Check wrapper
-        working-directory: ./client/cordova/platforms/android
-        run: |
-          echo "=== FILES ==="
-          ls -la gradlew 2>&1 || echo "NO GRADLEW"
-          ls -la gradle/wrapper/ 2>&1 || echo "NO WRAPPER DIR"
-          cat gradle/wrapper/gradle-wrapper.properties 2>&1 || echo "NO PROPS"
-          if [ ! -f gradlew ]; then
-            echo "=== DOWNLOAD ==="
-            mkdir -p gradle/wrapper/
-            curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.1.1/gradlew" -o gradlew
-            curl -sL "https://raw.githubusercontent.com/gradle/gradle/v7.1.1/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
-            chmod +x gradlew
-          fi
-          echo "=== AFTER ==="
-          ls -la gradlew gradle/wrapper/
-          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' gradle/wrapper/gradle-wrapper.properties
-          head -3 gradle/wrapper/gradle-wrapper.properties
-
-      - name: Fix SDK config
-        working-directory: ./client/cordova
-        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.0.4';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" && cat platforms/android/cdv-gradle-config.json
-
-      - name: Build APK
+      - name: Build
         working-directory: ./client/cordova
         run: |
           exec 2>&1
-          echo "=== BUILD.GRADLE ==="
-          head -30 platforms/android/app/build.gradle || echo "no app/build.gradle"
-          echo "=== ROOT BUILD.GRADLE ==="
-          head -20 platforms/android/build.gradle || echo "no build.gradle"
-          echo "=== REQUIREMENTS ==="
-          cordova requirements android || true
+          set +e
+          # Clean and add platform
+          rm -rf platforms/android/ platforms/platforms.json
+          echo "=== PLATFORM ADD ==="
+          cordova platform add android@10 2>&1
+          echo "PLATFORM_ADD_EXIT=$?"
+          # Check what was created
+          echo "=== DIR CHECK ==="
+          ls -la platforms/android/ 2>/dev/null | head -5
+          ls -la platforms/android/gradle/wrapper/ 2>/dev/null | head -5
+          ls -la platforms/android/gradlew 2>/dev/null
+          # Fix wrapper version
+          sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null
+          # Fix SDK config
+          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.0.4';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" 2>/dev/null
+          # Build
           echo "=== BUILD ==="
-          cd platforms/android && ./gradlew assembleDebug --info; EC=$?
-          echo "GRADLE_EXIT_CODE=${EC}"
-          echo "=== APK ==="
-          find . -name "*.apk" -type f || echo "no apk found"
-          find . -type d -name "outputs" -exec ls -la {} \; 2>/dev/null || echo "no outputs dirs"
-
-      - name: Find APK
-        working-directory: ./client/cordova
-        continue-on-error: true
-        run: |
-          echo "=== SEARCH APK ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
-          find . -type f -name "*.apk" 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt
-          echo "=== BUILD DIRS ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
-          ls -la platforms/android/app/build/outputs/ 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt
-          find platforms/android/app/build -type d 2>&1 | head -20 | tee -a $GITHUB_WORKSPACE/build-log.txt
-          echo "=== BUILD FILES ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
-          find platforms/android/app/build -type f 2>&1 | head -20 | tee -a $GITHUB_WORKSPACE/build-log.txt
-          echo "=== GRADLE WRAPPER ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 | tee -a $GITHUB_WORKSPACE/build-log.txt
-          echo "=== DONE ===" | tee -a $GITHUB_WORKSPACE/build-log.txt
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build-log.txt
+          cordova build android --debug 2>&1
+          echo "BUILD_EXIT=$?"
+          # Find APK
+          echo "=== FIND APK ==="
+          find . -name "*.apk" -type f 2>/dev/null
+          find platforms -type d -name outputs -exec ls -R {} \; 2>/dev/null
 
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ds-majiang-apk
-          path: client/cordova/platforms/android/app/build/outputs/**/*.apk
+          path: |
+            client/cordova/platforms/android/app/build/outputs/**/*.apk
+            client/cordova/platforms/android/**/*.apk
