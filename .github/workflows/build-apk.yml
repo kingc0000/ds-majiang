@@ -44,14 +44,23 @@ jobs:
           rm -rf platforms/android/ platforms/platforms.json
           cordova platform add android@10
 
-      - name: Fix Gradle wrapper
-        working-directory: ./client/cordova
+      - name: Generate Gradle wrapper
+        working-directory: ./client/cordova/platforms/android
         run: |
-          ls -la platforms/android/gradle/wrapper/ 2>&1 || echo "NO wrapper dir"
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 || echo "NO properties file"
-          echo "=== fixing ==="
-          perl -pe 's|gradle-[0-9.]+-bin.zip|gradle-7.1.1-bin.zip|g' -i platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 || true
-          head -5 platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 || true
+          echo "=== CHECK ==="
+          ls -la gradlew 2>&1 || echo "no gradlew"
+          which gradle 2>&1 || echo "no gradle in PATH"
+          # Find system gradle
+          for g in /usr/share/gradle*/bin/gradle; do
+            if [ -x "$g" ]; then
+              echo "Found system Gradle: $g"
+              "$g" wrapper --gradle-version 7.1.1 2>&1
+              break
+            fi
+          done
+          echo "=== AFTER ==="
+          ls -la gradlew gradle/wrapper/ 2>&1
+          head -3 gradle/wrapper/gradle-wrapper.properties 2>&1
 
       - name: Fix SDK config
         working-directory: ./client/cordova
