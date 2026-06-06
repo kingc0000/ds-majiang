@@ -21,7 +21,13 @@ jobs:
         with:
           node-version: '18'
       - name: Setup Android SDK
-        run: echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV && echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "=== Android SDK contents ==="
+          ls /usr/local/lib/android/sdk/build-tools/ 2>/dev/null || echo "NO BUILD TOOLS DIR"
+          ls /usr/local/lib/android/sdk/platforms/ 2>/dev/null || echo "NO PLATFORMS DIR"
+          ls /usr/local/lib/android/sdk/ 2>/dev/null || echo "NO SDK DIR"
       - name: Install Cordova CLI
         run: npm install -g cordova@13
       - name: Platform add android@10
@@ -29,20 +35,27 @@ jobs:
         run: rm -rf platforms && cordova platform add android@10
       - name: Set AGP 7.3.1 SDK 33
         working-directory: ./client/cordova
-        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
+        run: |
+          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.3.1';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
+          echo "=== Configured config ==="
+          cat platforms/android/cdv-gradle-config.json
       - name: Build with gradlew
         working-directory: ./client/cordova/platforms/android
         run: |
-          set +e
-          echo "=== PWD ==="
-          pwd
-          echo "=== Build with gradlew ==="
+          echo "=== ANDROID_HOME ==="
+          echo $ANDROID_HOME
+          echo "=== JAVA_HOME ==="
+          echo $JAVA_HOME
+          echo "=== Build tools check ==="
+          ls -la $ANDROID_HOME/build-tools/ 2>/dev/null
+          echo "=== Build ==="
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1
-          EXIT_CODE=$?
-          echo "=== EXIT: $EXIT_CODE ==="
-          echo "=== SEARCH APK ==="
-          find / -name "*.apk" -type f 2>/dev/null | head -10
-          echo "=== BUILD OUTPUTS ==="
-          find . -path "*/build/outputs/*" -type f 2>/dev/null | head -10
-          exit $EXIT_CODE
+          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1
+      - name: Upload APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ds-majiang-apk
+          path: |
+            **/*.apk
+            app/build/outputs/**/*.apk
