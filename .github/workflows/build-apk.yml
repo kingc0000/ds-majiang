@@ -73,8 +73,14 @@ jobs:
           ls -la platforms/android/app/build/outputs/apk/ 2>/dev/null || true
           echo "=== ALL APK ==="
           find . -name "*.apk" -type f 2>/dev/null || true
-          echo "=== SDK ==="
+          echo "=== APP BUILD ==="
           ls -la platforms/android/app/build/ 2>/dev/null || true
+          # Copy APK if found
+          APK_FILE=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" "$GITHUB_WORKSPACE/app.apk"
+            echo "COPIED: $APK_FILE"
+          fi
 
       - name: Upload gradle log
         if: always()
@@ -87,4 +93,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ds-majiang-apk
-          path: client/cordova/platforms/android/app/build/outputs/**/*.apk
+          path: /home/runner/work/ds-majiang/ds-majiang/*.apk
+          if-no-files-found: warn
