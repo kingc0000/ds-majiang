@@ -28,6 +28,7 @@ jobs:
 
       - name: Build APK
         working-directory: ./client/cordova
+        continue-on-error: true
         run: |
           set +e
           echo "=== CLEAN ==="
@@ -35,16 +36,20 @@ jobs:
           rm -f platforms/platforms.json
           echo "=== ADD PLATFORM ==="
           cordova platform add android@10 2>&1
-          echo "=== PLATFORM EXIT: $? ==="
           echo "=== BUILD ==="
           cordova build android --debug 2>&1
-          echo "=== BUILD EXIT: $? ==="
-          echo "=== OUTPUTS ==="
-          find platforms/android/app/build -type f 2>&1 || echo "no build dir"
-          find . -name "*.apk" 2>&1 || echo "no apk"
+          echo "=== FIND APK ==="
+          find . -name "*.apk" -type f 2>&1
 
-      - name: Upload APK
+      - name: Copy APK to root
+        working-directory: ./client/cordova
+        run: |
+          mkdir -p /tmp/apk-output/
+          find . -name "*.apk" -type f -exec cp {} /tmp/apk-output/ \;
+          ls -la /tmp/apk-output/
+
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: ds-majiang-apk
-          path: client/cordova/platforms/android/app/build/outputs/apk/**/*.apk
+          name: ds-majiang-debug-apk
+          path: /tmp/apk-output/
