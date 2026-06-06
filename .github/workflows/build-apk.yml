@@ -28,24 +28,39 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          echo "JAVA_HOME_was=$JAVA_HOME"
-
-      - name: Check Java
-        run: java -version 2>&1
 
       - name: Install Cordova
         run: npm install -g cordova@13
 
-      - name: Build APK
+      - name: Test Java
+        run: java -version
+
+      - name: Test Cordova
+        run: cordova --version
+
+      - name: Test platform add
         working-directory: ./client/cordova
         run: |
-          java -version 2>&1
           rm -rf platforms/android/ platforms/platforms.json
-          npx cordova platform add android@10 2>&1
+          cordova platform add android@10
+
+      - name: Fix Gradle wrapper
+        working-directory: ./client/cordova
+        run: |
           sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
-          python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; c['AGP_VERSION']='7.0.4'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)"
-          npx cordova build android --debug 2>&1
-          find . -type f -name "*.apk"
+          head -5 platforms/android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Fix SDK config
+        working-directory: ./client/cordova
+        run: python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='33.0.1';c['AGP_VERSION']='7.0.4';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)" && cat platforms/android/cdv-gradle-config.json
+
+      - name: Build APK
+        working-directory: ./client/cordova
+        run: cordova build android --debug
+
+      - name: Find APK
+        working-directory: ./client/cordova
+        run: find . -type f -name "*.apk"
 
       - name: Upload APK
         if: success()
