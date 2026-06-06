@@ -49,11 +49,24 @@ jobs:
       - name: Build via gradlew
         working-directory: ./client/cordova/platforms/android
         run: |
+          set -x
+          set -o pipefail
           export ANDROID_HOME=/usr/local/lib/android/sdk
           export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          which java && java -version 2>&1
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls -la ./gradlew
+          ls -la gradle/wrapper/
           sudo rm -f /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon 2>&1
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build-log.txt
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: /tmp/build-log.txt
       - name: Locate APK
         id: find_apk
         working-directory: ./client/cordova/platforms/android
