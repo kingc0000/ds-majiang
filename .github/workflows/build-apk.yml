@@ -31,7 +31,7 @@ jobs:
         run: |
           rm -rf platforms
           cordova platform add android@10 2>&1 | tail -5
-          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['AGP_VERSION']='7.3.1';c['SDK_VERSION']='33';c['MIN_BUILD_TOOLS_VERSION']='30.0.3';c['BUILD_TOOLS_VERSION']='34.0.0';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
+          python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['AGP_VERSION']='7.3.1';c['SDK_VERSION']=33;c['MIN_BUILD_TOOLS_VERSION']='30.0.3';c['BUILD_TOOLS_VERSION']='34.0.0';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
           echo "=== Config check ==="
           cat platforms/android/cdv-gradle-config.json
       - name: Download Gradle 7.5.1
