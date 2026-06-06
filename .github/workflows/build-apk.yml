@@ -22,31 +22,32 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          java -version 2>&1
-          ls $SDK/build-tools/
-          ls $SDK/platforms/
 
       - name: Install Cordova
         run: npm install -g cordova@13 2>&1
 
       - name: Build APK
-        id: build
         working-directory: ./client/cordova
         run: |
           set -e
           rm -rf platforms/android/
           rm -f platforms/platforms.json
-          cordova platform add android@10 2>&1 | tee $HOME/platform-log.txt
-          echo "--- platform add done ---"
-          ls -la platforms/android/cdv-gradle-config.json
-          cat platforms/android/cdv-gradle-config.json
-          cordova build android --debug 2>&1 | tee -a $HOME/platform-log.txt
-          echo "--- build done ---"
+          echo "=== JAVA ==="
+          java -version 2>&1
+          echo "=== SDK ==="
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls $ANDROID_SDK_ROOT/build-tools/
+          ls $ANDROID_SDK_ROOT/platforms/
+          echo "=== ADD PLATFORM ==="
+          cordova platform add android@10 2>&1
+          echo "=== BUILD ==="
+          cordova build android --debug 2>&1
+          echo "=== FIND APK ==="
           find . -name "*.apk" -type f
 
-      - name: Upload log (always)
+      - name: Upload debug log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
-          path: /root/platform-log.txt
+          name: build-debug-log
+          path: client/cordova/platforms/android/cdv-gradle-config.json
