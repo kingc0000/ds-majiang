@@ -12,6 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
@@ -22,13 +28,7 @@ jobs:
           SDK=/usr/local/lib/android/sdk
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
-          for j in /usr/lib/jvm/java-17* /usr/lib/jvm/temurin-17* /usr/lib/jvm/msopenjdk-17*; do
-            if [ -d "$j" ]; then
-              echo "JAVA_HOME=$j" >> $GITHUB_ENV
-              echo "Found Java 17 at: $j"
-              break
-            fi
-          done
+          java -version 2>&1
 
       - name: Install Cordova
         run: npm install -g cordova@13 2>&1
@@ -40,7 +40,7 @@ jobs:
           rm -rf platforms/android/
           rm -f platforms/platforms.json
           cordova platform add android@10 2>&1
-          # Fix wrapper to use Gradle 7.1.1 (AGP 4.2.2 compatible)
+          # Fix wrapper to Gradle 7.1.1 (compatible with AGP 4.2.2)
           sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
           # Fix SDK config
           python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)"
