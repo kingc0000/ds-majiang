@@ -48,7 +48,7 @@ jobs:
           cordova platform add android@10 2>&1
           echo "=== FIX ==="
           sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
-          python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)"
+          python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; c['AGP_VERSION']='7.0.4'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)"
           echo "=== BUILD ==="
           cordova build android --debug 2>&1
           echo "=== APK ==="
