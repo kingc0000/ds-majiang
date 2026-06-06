@@ -35,46 +35,29 @@ jobs:
       - name: Build APK
         working-directory: ./client/cordova
         run: |
-          LOG=$GITHUB_WORKSPACE/build.log
-          set -e
-          exec 2>&1
-          echo "=== JAVA ==="
-          java -version 2>&1
-          echo "JAVA_HOME=$JAVA_HOME"
-          echo "=== CLEAN ==="
+          exec > $GITHUB_WORKSPACE/build-log.txt 2>&1
+          set -ex
           rm -rf platforms/android/
           rm -f platforms/platforms.json
-          echo "=== ADD PLATFORM ==="
-          cordova platform add android@10 2>&1
-          echo "=== FIX ==="
+          echo "=== PLATFORM ADD ==="
+          cordova platform add android@10
+          echo "=== FIX CONFIG ==="
           sed -i 's|gradle-[0-9.]*-bin.zip|gradle-7.1.1-bin.zip|g' platforms/android/gradle/wrapper/gradle-wrapper.properties
+          cat platforms/android/gradle/wrapper/gradle-wrapper.properties
           python3 -c "import json; c=json.load(open('platforms/android/cdv-gradle-config.json')); c['SDK_VERSION']='33'; c['MIN_BUILD_TOOLS_VERSION']='33.0.1'; c['AGP_VERSION']='7.0.4'; json.dump(c, open('platforms/android/cdv-gradle-config.json','w'), indent=4)"
+          cat platforms/android/cdv-gradle-config.json
           echo "=== BUILD ==="
-          cordova build android --debug 2>&1
-          echo "=== APK ==="
-          find . -name "*.apk" -type f
-        continue-on-error: true
+          cordova build android --debug || echo "BUILD_EXIT_CODE=$?"
+          echo "=== FIND APK ==="
+          find . -type f -name "*.apk" -o -name "*.aab"
+          find platforms -type d 2>/dev/null | head -40
+          echo "=== BUILD OUTPUTS ==="
+          find platforms/android/app/build -type f 2>/dev/null | head -40 || echo "no build outputs"
+          echo "=== DONE ==="
 
-      - name: Show outputs
-        working-directory: ./client/cordova
-        run: |
-          echo "=== BUILD DIRS ==="
-          find platforms/android/app/build -type d 2>&1 | head -20 || echo "no build dir"
-          echo "=== BUILD FILES ==="
-          find platforms/android/app/build -type f 2>&1 | head -20 || echo "no files"
-          echo "=== APK SEARCH ==="
-          find . -type f -name "*.apk" 2>&1 || echo "no apk"
-          echo "=== GRADLE WRAPPER ==="
-          cat platforms/android/gradle/wrapper/gradle-wrapper.properties 2>&1 || echo "no wrapper"
-          echo "=== CDV CONFIG ==="
-          cat platforms/android/cdv-gradle-config.json 2>&1 || echo "no config"
-
-      - name: Upload APK
-        continue-on-error: true
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ds-majiang-apk
-          path: |
-            client/cordova/platforms/android/app/build/outputs/**/*.apk
-            client/cordova/platforms/android/app/build/**/*.apk
-            client/cordova/platforms/android/**/*.apk
+          name: build-log
+          path: build-log.txt
