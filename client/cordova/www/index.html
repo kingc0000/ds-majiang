@@ -3,123 +3,228 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
-    <title></title>
-</head>
-<body style="margin:0;overflow:hidden;overflow-x:hidden;overflow-y:hidden;background-color: #FFF;">
-<script type="text/javascript" src="cordova.js"></script>
-<script type="text/javascript">
-    window.serverUrl = "wss://mj.235301.xyz/ws/g";
-    window.gameInit = function (obj, initCallback) {
-        window.$initCallback = initCallback.bind(obj);
-    };
-</script>
-<script src="myLaya.min.js" loader="laya"></script>
-<script>
-    document.addEventListener("deviceready", onDeviceReady, false);
-    function onDeviceReady() {
-        // 隐藏启动画面
-        try {
-            if (navigator.splashscreen && navigator.splashscreen.hide) {
-                navigator.splashscreen.hide();
-            }
-        } catch(e) {
-            console.log("splashscreen hide error:", e);
+    <title>砀山235</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
         }
+        body {
+            background-color: #FFF;
+        }
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0d3b0d 0%, #1a5c1a 50%, #0d3b0d 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s;
+        }
+        #loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #loading-title {
+            color: #d4a843;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        #loading-sub {
+            color: #a0c8a0;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #2a7a2a;
+            border-top: 3px solid #d4a843;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #error-box {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.85);
+            color: #ff4444;
+            padding: 20px 30px;
+            border-radius: 12px;
+            border: 2px solid #ff4444;
+            z-index: 99999;
+            font-family: monospace;
+            font-size: 13px;
+            max-width: 85%;
+            max-height: 80%;
+            overflow: auto;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            text-align: center;
+        }
+        #error-box .retry-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 24px;
+            background: #d4a843;
+            color: #0d3b0d;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading overlay (visible until game starts) -->
+    <div id="loading-overlay">
+        <div id="loading-title">砀山235</div>
+        <div id="loading-sub">加载中...</div>
+        <div class="loader"></div>
+    </div>
 
-        // 初始化微信分享（如果插件可用）
-        (function () {
-            var Wechat = null;
+    <!-- Error display box -->
+    <div id="error-box"></div>
+
+    <!-- Step 1: Configure server URL and gameInit -->
+    <script type="text/javascript">
+        window.serverUrl = "wss://mj.235301.xyz/ws/g";
+
+        window.gameInit = function (obj, initCallback) {
+            window.$initCallback = initCallback.bind(obj);
+        };
+
+        // Show error on screen
+        window.showAppError = function(msg) {
+            var box = document.getElementById('error-box');
+            box.style.display = 'block';
+            box.innerHTML = '❌ ' + msg.replace(/\n/g, '<br>') +
+                '<br><br><button class="retry-btn" onclick="location.reload()">重新加载</button>';
+        };
+
+        // Hide loading overlay
+        window.hideLoading = function() {
+            var overlay = document.getElementById('loading-overlay');
+            if (overlay) overlay.classList.add('hidden');
+            // Remove from DOM after transition
+            setTimeout(function() { if (overlay) overlay.remove(); }, 600);
+        };
+    </script>
+
+    <!-- Step 2: LayaAir engine -->
+    <script src="myLaya.min.js" loader="laya"
+        onerror="window.showAppError('游戏引擎加载失败: myLaya.min.js 未找到')">
+    </script>
+
+    <!-- Step 3: Game initialization -->
+    <script type="text/javascript">
+        // Global error catcher
+        window.onerror = function(msg, url, line, col, err) {
+            window.showAppError('脚本错误: ' + msg + '\n位置: ' + (url || '').split('/').pop() + ':' + line);
+            return true;
+        };
+
+        // Cordova deviceready handler
+        document.addEventListener("deviceready", function() {
+            // Hide Cordova splash screen
             try {
-                Wechat = cordova.require("cordova-plugin-wechat.Wechat");
+                if (navigator.splashscreen && navigator.splashscreen.hide) {
+                    navigator.splashscreen.hide();
+                }
             } catch(e) {
-                console.log("Wechat plugin not available, skipping:", e);
+                console.log("splash hide:", e);
             }
 
-            var clientAddress = "https://mj.235301.xyz/";
+            // Initialize game features
+            try {
+                // WeChat plugin (optional)
+                (function() {
+                    var Wechat = null;
+                    try {
+                        Wechat = cordova.require("cordova-plugin-wechat.Wechat");
+                    } catch(e) {
+                        console.log("Wechat plugin not available");
+                    }
 
-            if (Wechat) {
-                window.shareInviteUser = function (roomId) {
-                    Wechat.isInstalled(function (installed) {
-                        var params = {
-                            scene: Wechat.Scene.SESSION
-                        };
-                        params.message = {
-                            mediaTagName: "S-TAG-001",
-                            messageExt: "",
-                            messageAction: "<action>dotalist</action>",
-                            media: {}
-                        };
-                        params.message.title = '房间:' + roomId + "",
-                            params.message.description = "邀请你进行一局麻将";
-                        params.message.thumb = "www/icon/180.png";
-                        params.message.media.type = Wechat.Type.LINK;
-                        params.message.media.webpageUrl = clientAddress + "?roomId=" + roomId;
+                    var clientAddress = "https://mj.235301.xyz/";
 
-                        Wechat.share(params, function () {
-                            alert("邀请发送成功");
-                        }, function (reason) {
-                            alert("邀请发送失败：" + reason);
-                        });
-                    }, function (reason) {
-                        alert("未安装微信");
-                    });
-                };
-
-                window.weixinLogin = function (callback) {
-                    Wechat.isInstalled(function (installed) {
-                        var scope = "snsapi_userinfo", state = "_" + (+new Date());
-                        Wechat.auth(scope, state, function (response) {
-                            var url = clientAddress + "appWeixinLogin.json";
-                            var httpRequest = new XMLHttpRequest();
-                            httpRequest.onreadystatechange = alertContents;
-                            httpRequest.open('POST', url);
-                            httpRequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-                            console.log('weiXinJson', response);
-                            httpRequest.send("data=" + encodeURIComponent(JSON.stringify(response)));
-                            function alertContents() {
-                                if (httpRequest.readyState === XMLHttpRequest.DONE) {
-                                    if (httpRequest.status === 200) {
-                                        var json = JSON.parse(httpRequest.responseText);
-                                        console.log("微信登录结果:", httpRequest.responseText);
-                                        if (json.msg) {
-                                            callback();
-                                            console.log("微信登错误:", httpRequest);
-                                            alert(json.msg);
-                                        } else {
-                                            callback(json.data);
-                                        }
-                                    } else {
-                                        callback();
-                                        console.log("微信登错误:", httpRequest);
-                                        alert("微信登录错误: 服务器状态码" + httpRequest.status);
+                    if (Wechat) {
+                        window.shareInviteUser = function (roomId) {
+                            Wechat.isInstalled(function (installed) {
+                                Wechat.share({
+                                    scene: Wechat.Scene.SESSION,
+                                    message: {
+                                        title: '房间:' + roomId,
+                                        description: '邀请你进行一局麻将',
+                                        thumb: "www/icon/180.png",
+                                        media: { type: Wechat.Type.LINK, webpageUrl: clientAddress + "?roomId=" + roomId }
                                     }
-                                }
-                            }
-                        }, function (reason) {
-                            alert("微信登录错误: " + reason);
-                            callback();
-                        });
-                    }, function (reason) {
-                        alert("未安装微信");
-                        callback();
-                    });
-                };
-            } else {
-                // 微信插件不可用时的占位
-                window.shareInviteUser = function(roomId) {
-                    alert("请手动复制房间号 " + roomId + " 邀请好友");
-                };
-                window.weixinLogin = function(callback) {
-                    callback();
-                };
-            }
+                                }, function() { alert("邀请发送成功"); }, function(r) { alert("邀请失败:" + r); });
+                            }, function() { alert("未安装微信"); });
+                        };
+                        window.weixinLogin = function(callback) {
+                            Wechat.isInstalled(function(installed) {
+                                Wechat.auth("snsapi_userinfo", "_" + (+new Date()),
+                                    function(response) {
+                                        var xhr = new XMLHttpRequest();
+                                        xhr.open('POST', clientAddress + "appWeixinLogin.json");
+                                        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                                        xhr.onreadystatechange = function() {
+                                            if (xhr.readyState === XMLHttpRequest.DONE) {
+                                                if (xhr.status === 200) {
+                                                    var json = JSON.parse(xhr.responseText);
+                                                    if (json.msg) { alert(json.msg); callback(); }
+                                                    else { callback(json.data); }
+                                                } else { alert("微信登录错误:" + xhr.status); callback(); }
+                                            }
+                                        };
+                                        xhr.send("data=" + encodeURIComponent(JSON.stringify(response)));
+                                    },
+                                    function(r) { alert("微信登录错误:" + r); callback(); }
+                                );
+                            }, function() { alert("未安装微信"); callback(); });
+                        };
+                    } else {
+                        window.shareInviteUser = function(roomId) {
+                            alert("请手动复制房间号 " + roomId + " 邀请好友");
+                        };
+                        window.weixinLogin = function(callback) { callback(); };
+                    }
+                })();
 
-            // 启动游戏
-            if (window.$initCallback) {
-                window.$initCallback();
+                // Hide loading overlay
+                window.hideLoading();
+            } catch(e) {
+                window.showAppError('初始化失败: ' + e.message);
             }
-        })();
-    }
-</script>
+        }, false);
+
+        // Fallback: if deviceready doesn't fire within 8s, start anyway
+        setTimeout(function() {
+            var overlay = document.getElementById('loading-overlay');
+            if (overlay && !overlay.classList.contains('hidden')) {
+                console.log("deviceready timeout - starting game directly");
+                try {
+                    window.hideLoading();
+                } catch(e) {
+                    console.log("fallback error:", e);
+                }
+            }
+        }, 8000);
+    </script>
+
+    <!-- cordova.js (injected by Cordova build) -->
+    <script type="text/javascript" src="cordova.js"
+        onerror="console.log('cordova.js not found (expected during dev)')">
+    </script>
 </body>
 </html>
