@@ -51,6 +51,7 @@
         test('Canvas 2D 可用', !!ctx);
     } catch(e) { test('Canvas 2D 可用', false); }
     
+    window.serverUrl = "wss://mj.235301.xyz/ws/g";
     log('info', '--- 加载状态 ---');
     test('window.serverUrl 已设置', !!window.serverUrl);
     
