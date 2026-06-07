@@ -12,33 +12,19 @@
     <preference name="StatusBarOverlaysWebView" value="true" />
     <preference name="Fullscreen" value="true" />
     <preference name="Orientation" value="landscape" />
-    <preference name="android-minSdkVersion" value="16" />
-    <preference name="SplashScreen" value="screen" />
-    <preference name="AutoHideSplashScreen" value="false" />
-    <preference name="SplashScreenDelay" value="10000" />
-    <preference name="SplashMaintainAspectRatio" value="true" />
-    <preference name="SplashShowOnlyFirstTime" value="false" />
-    <preference name="ShowSplashScreenSpinner" value="false" />
+    <preference name="android-minSdkVersion" value="24" />
+    <preference name="AutoHideSplashScreen" value="true" />
+    <preference name="SplashScreenDelay" value="3000" />
     <preference name="FadeSplashScreen" value="true" />
-    <preference name="FadeSplashScreenDuration" value="750" />
-    <preference name="BackgroundColor" value="0xFFFFFF00" />
+    <preference name="FadeSplashScreenDuration" value="500" />
+    <preference name="ShowSplashScreenSpinner" value="false" />
+    <preference name="BackgroundColor" value="0xFFFFFFFF" />
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
     <allow-intent href="tel:*" />
     <allow-intent href="sms:*" />
     <allow-intent href="mailto:*" />
     <allow-intent href="geo:*" />
-    <plugin name="cordova-plugin-geolocation" spec="~2.4.1">
-        <variable name="GEOLOCATION_USAGE_DESCRIPTION" value="需要定位确定是否作弊" />
-    </plugin>
-    <plugin name="cordova-plugin-splashscreen" spec="~4.0.1" />
-    <plugin name="cordova-plugin-wechat" spec="~1.4.0">
-        <variable name="WECHATAPPID" value="wx15a6c9172f161305" />
-    </plugin>
-    <plugin name="cordova-plugin-statusbar" spec="~2.2.1" />
-    <plugin name="cordova-plugin-app-name" spec="~1.0.0">
-        <variable name="APP_NAME" value="众友广东麻将" />
-    </plugin>
     <platform name="android">
         <icon src="resources/android/drawable-xxxhdpi-icon.png" />
         <icon density="ldpi" src="resources/android/icon/drawable-ldpi-icon.png" />
@@ -71,5 +57,5 @@
         <icon height="87" src="resources/ios/icon/icon-small@3x.png" width="87" />
         <splash height="1242" src="resources/ios/splash/Default-Landscape-736h.jpg" width="2208" />
         <splash height="1536" src="resources/ios/splash/Default-Landscape@2x~ipad.jpg" width="2048" />
-</platform>
+    </platform>
 </widget>
