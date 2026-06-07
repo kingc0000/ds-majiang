@@ -11,7 +11,7 @@
             overflow: hidden;
         }
         body {
-            background-color: #FFF;
+            background-color: #000;
         }
         #loading-overlay {
             position: fixed;
@@ -23,7 +23,7 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
-            transition: opacity 0.5s;
+            transition: opacity 0.3s;
         }
         #loading-overlay.hidden {
             opacity: 0;
@@ -86,28 +86,24 @@
     </style>
 </head>
 <body>
-    <!-- Loading overlay (visible until game starts) -->
+    <!-- Loading overlay -->
     <div id="loading-overlay">
         <div id="loading-title">砀山235</div>
         <div id="loading-sub">加载中...</div>
         <div class="loader"></div>
     </div>
 
-    <!-- Error display box -->
     <div id="error-box"></div>
 
-    <!-- Step 1: Configure server URL and gameInit callback -->
+    <!-- Step 1: Define server URL and gameInit -->
     <script type="text/javascript">
         window.serverUrl = "wss://mj.235301.xyz/ws/g";
 
-        // LayaAir engine calls this during myLaya.min.js loading.
-        // 'obj' = GameMain instance, 'initCallback' = GameMain.init()
-        // We store it so we can call it AFTER deviceready fires.
+        // LayaAir engine calls this during myLaya.min.js loading
         window.gameInit = function (obj, initCallback) {
             window.$initCallback = initCallback.bind(obj);
         };
 
-        // Show error on screen
         window.showAppError = function(msg) {
             var box = document.getElementById('error-box');
             box.style.display = 'block';
@@ -115,125 +111,100 @@
                 '<br><br><button class="retry-btn" onclick="location.reload()">重新加载</button>';
         };
 
-        // Hide loading overlay
         window.hideLoading = function() {
             var overlay = document.getElementById('loading-overlay');
             if (overlay) overlay.classList.add('hidden');
-            setTimeout(function() { if (overlay) overlay.remove(); }, 600);
+            setTimeout(function() { if (overlay) overlay.remove(); }, 400);
         };
     </script>
 
-    <!-- Step 2: LayaAir engine (GameMain constructor runs inside, calls gameInit to store callback) -->
+    <!-- Step 2: LayaAir engine (GameMain constructor runs, stores $initCallback) -->
     <script src="myLaya.min.js" loader="laya"
         onerror="window.showAppError('游戏引擎加载失败')">
     </script>
 
-    <!-- Step 3: deviceready - set up features, start game -->
+    <!-- Step 3: Start game on window.onload (works in both browser and Cordova) -->
     <script type="text/javascript">
-        // Global error catcher
-        window.onerror = function(msg, url, line, col, err) {
+        window.onerror = function(msg) {
             window.showAppError('脚本错误: ' + msg);
             return true;
         };
 
+        window.onload = function() {
+            try {
+                // Start the game (works regardless of Cordova)
+                if (window.$initCallback) {
+                    window.$initCallback();
+                }
+            } catch(e) {
+                window.showAppError('游戏初始化失败: ' + e.message);
+            }
+
+            // Hide loading overlay
+            window.hideLoading();
+        };
+
+        // Handle Cordova deviceready for splash screen + WeChat
         document.addEventListener("deviceready", function() {
-            // Hide Cordova splash screen
+            // Hide Cordova native splash
             try {
                 if (navigator.splashscreen && navigator.splashscreen.hide) {
                     navigator.splashscreen.hide();
                 }
-            } catch(e) {
-                console.log("splash hide error:", e);
-            }
+            } catch(e) {}
 
+            // WeChat sharing setup (optional)
             try {
-                // WeChat plugin (optional - gracefully handle if missing)
-                (function() {
-                    var Wechat = null;
-                    try {
-                        Wechat = cordova.require("cordova-plugin-wechat.Wechat");
-                    } catch(e) {
-                        console.log("Wechat plugin not available");
-                    }
+                var Wechat = null;
+                try {
+                    Wechat = cordova.require("cordova-plugin-wechat.Wechat");
+                } catch(e) {}
 
-                    var clientAddress = "https://mj.235301.xyz/";
-
-                    if (Wechat) {
-                        window.shareInviteUser = function(roomId) {
-                            Wechat.isInstalled(function(installed) {
-                                Wechat.share({
-                                    scene: Wechat.Scene.SESSION,
-                                    message: {
-                                        title: '房间:' + roomId,
-                                        description: '邀请你进行一局麻将',
-                                        thumb: "www/icon/180.png",
-                                        media: { type: Wechat.Type.LINK, webpageUrl: clientAddress + "?roomId=" + roomId }
+                if (Wechat) {
+                    window.shareInviteUser = function(roomId) {
+                        Wechat.share({
+                            scene: Wechat.Scene.SESSION,
+                            message: {
+                                title: '房间:' + roomId,
+                                description: '邀请你进行一局麻将',
+                                thumb: "www/icon/180.png",
+                                media: { type: Wechat.Type.LINK, webpageUrl: "https://mj.235301.xyz/?roomId=" + roomId }
+                            }
+                        }, function() { alert("邀请发送成功"); }, function(r) { alert("邀请失败:" + r); });
+                    };
+                    window.weixinLogin = function(callback) {
+                        Wechat.auth("snsapi_userinfo", "_" + (+new Date()),
+                            function(response) {
+                                var xhr = new XMLHttpRequest();
+                                xhr.open('POST', "https://mj.235301.xyz/" + "appWeixinLogin.json");
+                                xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                                xhr.onreadystatechange = function() {
+                                    if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                                        try {
+                                            var json = JSON.parse(xhr.responseText);
+                                            json.msg ? (alert(json.msg), callback()) : callback(json.data);
+                                        } catch(e) { callback(); }
                                     }
-                                }, function() { alert("邀请发送成功"); }, function(r) { alert("邀请失败:" + r); });
-                            }, function() { alert("未安装微信"); });
-                        };
-                        window.weixinLogin = function(callback) {
-                            Wechat.isInstalled(function(installed) {
-                                Wechat.auth("snsapi_userinfo", "_" + (+new Date()),
-                                    function(response) {
-                                        var xhr = new XMLHttpRequest();
-                                        xhr.open('POST', clientAddress + "appWeixinLogin.json");
-                                        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-                                        xhr.onreadystatechange = function() {
-                                            if (xhr.readyState === XMLHttpRequest.DONE) {
-                                                if (xhr.status === 200) {
-                                                    var json = JSON.parse(xhr.responseText);
-                                                    if (json.msg) { alert(json.msg); callback(); }
-                                                    else { callback(json.data); }
-                                                } else { alert("微信登录错误:" + xhr.status); callback(); }
-                                            }
-                                        };
-                                        xhr.send("data=" + encodeURIComponent(JSON.stringify(response)));
-                                    },
-                                    function(r) { alert("微信登录错误:" + r); callback(); }
-                                );
-                            }, function() { alert("未安装微信"); callback(); });
-                        };
-                    } else {
-                        window.shareInviteUser = function(roomId) {
-                            alert("请手动复制房间号 " + roomId + " 邀请好友");
-                        };
-                        window.weixinLogin = function(callback) { callback(); };
-                    }
-                })();
-
-                // IMPORTANT: Call the stored init callback to start the game!
-                // GameMain constructor stores GameMain.init() as $initCallback.
-                // We must call it now to start the game logic.
-                if (window.$initCallback) {
-                    window.$initCallback();
+                                };
+                                xhr.send("data=" + encodeURIComponent(JSON.stringify(response)));
+                            },
+                            function(r) { alert("微信登录错误:" + r); callback(); }
+                        );
+                    };
+                } else {
+                    window.shareInviteUser = function(roomId) { alert("请手动复制房间号 " + roomId + " 邀请好友"); };
+                    window.weixinLogin = function(callback) { callback(); };
                 }
-
-                // Hide our loading overlay
-                window.hideLoading();
             } catch(e) {
-                window.showAppError('初始化失败: ' + e.message);
+                window.shareInviteUser = function(roomId) { alert("请手动复制房间号 " + roomId + " 邀请好友"); };
+                window.weixinLogin = function(callback) { callback(); };
             }
         }, false);
-
-        // Fallback: if deviceready doesn't fire within 10s, start game anyway
-        setTimeout(function() {
-            var overlay = document.getElementById('loading-overlay');
-            if (overlay && !overlay.classList.contains('hidden')) {
-                console.log("deviceready timeout - starting game directly");
-                try {
-                    if (window.$initCallback) window.$initCallback();
-                    window.hideLoading();
-                } catch(e) {
-                    console.log("fallback error:", e);
-                }
-            }
-        }, 10000);
     </script>
 
-    <!-- cordova.js (injected by Cordova build into assets/www) -->
+    <!-- cordova.js (injected by build) -->
     <script type="text/javascript" src="cordova.js"
-        onerror="console.log('cordova.js not found (expected during dev)')">
+        onerror="console.log('cordova.js not expected in browser')">
     </script>
 </body>
 </html>
