@@ -32,10 +32,21 @@ jobs:
           cordova platform add android@10 2>&1 | tail -5
           cordova prepare 2>&1 | tail -5
           python3 -c "import json;c=json.load(open('platforms/android/cdv-gradle-config.json'));c['AGP_VERSION']='7.3.1';c['SDK_VERSION']=33;c['MIN_BUILD_TOOLS_VERSION']='30.0.3';c['BUILD_TOOLS_VERSION']='34.0.0';json.dump(c,open('platforms/android/cdv-gradle-config.json','w'),indent=4)"
-          echo \"=== Config check ===\"
+          echo "=== Config check ==="
           python3 -c "import json;print(json.dumps(json.load(open('platforms/android/cdv-gradle-config.json')),indent=2))"
           echo "=== Verify www assets ==="
           ls platforms/android/app/src/main/assets/www/ 2>/dev/null | head -10
+      - name: Copy custom app icons
+        working-directory: ./client/cordova
+        run: |
+          for size in ldpi mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            src="resources/android/icon/drawable-${size}-icon.png"
+            dst="platforms/android/app/src/main/res/mipmap-${size}/ic_launcher.png"
+            if [ -f "$src" ]; then
+              cp "$src" "$dst"
+              echo "Copied $size icon ($(du -h "$dst" | cut -f1))"
+            fi
+          done
       - name: Download Gradle 7.5.1
         run: |
           curl -sL -o /tmp/gradle-7.5.1-bin.zip "https://services.gradle.org/distributions/gradle-7.5.1-bin.zip"
