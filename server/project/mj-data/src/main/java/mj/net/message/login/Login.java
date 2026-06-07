@@ -66,8 +66,12 @@ public class Login extends AbstractMessage{
 		code = in.readString();
 		longitude = in.readString();
 		latitude = in.readString();
-		// 砀山麻游：读取密码字段
-		password = in.readString();
+		// 砀山麻游：密码字段（向后兼容：旧客户端可能不发送此字段）
+		try {
+			password = in.readString();
+		} catch (ProtocolException e) {
+			password = null;
+		}
 	}
 
 	@Override
