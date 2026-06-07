@@ -4,123 +4,22 @@
     <meta charset="utf-8">
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
     <title>砀山235</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; }
-        body { background: linear-gradient(135deg, #0a3d0a, #1a5c1a); }
-        #debug {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            color: #fff; font-family: monospace; font-size: 14px;
-            padding: 20px; z-index: 999999;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.7);
-            pointer-events: none;
-        }
-        #debug .ok { color: #4f4; }
-        #debug .fail { color: #f44; font-weight: bold; }
-        #debug .info { color: #aaf; }
-    </style>
 </head>
-<body>
-<div id="debug"></div>
-
+<body style="margin:0;overflow:hidden;overflow-x:hidden;overflow-y:hidden;background-color: #000;">
 <script type="text/javascript">
-(function() {
-    var dbg = document.getElementById('debug');
-    function log(cls, msg) { dbg.innerHTML += '<span class="' + cls + '">▶ ' + msg + '</span><br>'; }
-    function test(name, condition) { log(condition ? 'ok' : 'fail', name + ': ' + (condition ? '✓' : '✗')); }
-    
-    log('info', '--- 环境检测 ---');
-    test('document.body 存在', !!document.body);
-    test('window.innerWidth > 0', window.innerWidth > 0);
-    test('window.innerHeight > 0', window.innerHeight > 0);
-    test('screen.availWidth', screen && screen.availWidth > 0);
-    
-    // WebGL check
-    var hasWebGL = false;
-    try {
-        var c = document.createElement('canvas');
-        hasWebGL = !!(c.getContext('webgl') || c.getContext('experimental-webgl'));
-    } catch(e) {}
-    test('WebGL 可用', hasWebGL);
-    
-    // Canvas check
-    try {
-        var c = document.createElement('canvas');
-        var ctx = c.getContext('2d');
-        test('Canvas 2D 可用', !!ctx);
-    } catch(e) { test('Canvas 2D 可用', false); }
-    
     window.serverUrl = "wss://mj.235301.xyz/ws/g";
-    log('info', '--- 加载状态 ---');
-    test('window.serverUrl 已设置', !!window.serverUrl);
-    
     window.gameInit = function (obj, initCallback) {
         window.$initCallback = initCallback.bind(obj);
-        log('ok', 'gameInit 被 Laya 引擎调用了 ✓');
     };
-    
-    // Track script loading
-    var scriptsLoaded = 0;
-    var totalScripts = document.scripts.length;
-    
-    var origOnload = window.onload;
-    window.onload = function() {
-        log('ok', 'window.onload 触发了 ✓');
-        test('$initCallback 已定义', !!window.$initCallback);
-        test('页面已完全加载', document.readyState === 'complete');
-        
-        // Check DOM for Laya canvas
-        setTimeout(function() {
-            var layaCanvas = document.getElementById('layaCanvas');
-            var layaContainer = document.getElementById('layaContainer');
-            test('layaCanvas 元素存在', !!layaCanvas);
-            test('layaContainer 元素存在', !!layaContainer);
-            if (layaCanvas) {
-                test('Canvas width > 0', layaCanvas.width > 0);
-                test('Canvas height > 0', layaCanvas.height > 0);
-                test('Canvas 在 DOM 中', document.body.contains(layaCanvas));
-                log('info', 'Canvas: ' + layaCanvas.width + 'x' + layaCanvas.height);
-            }
-            if (layaContainer) {
-                log('info', 'Container children: ' + layaContainer.children.length);
-            }
-            
-            // Start game
-            log('info', '--- 启动游戏 ---');
-            if (window.$initCallback) {
-                try {
-                    window.$initCallback();
-                    log('ok', '$initCallback() 执行成功 ✓');
-                } catch(e) {
-                    log('fail', '$initCallback() 抛出异常: ' + e.message);
-                    log('fail', '堆栈: ' + (e.stack || '无').substring(0, 200));
-                }
-                
-                // Check game state after init
-                setTimeout(function() {
-                    test('Laya.stage 存在', !!(window.Laya && window.Laya.stage));
-                    test('Laya.render 存在', !!(window.Laya && window.Laya.render));
-                    if (window.Laya && window.Laya.stage) {
-                        log('info', 'Stage: ' + window.Laya.stage.width + 'x' + window.Laya.stage.height);
-                    }
-                    // Final check on canvas
-                    var lc = document.getElementById('layaCanvas');
-                    if (lc) {
-                        var computed = window.getComputedStyle(lc);
-                        log('info', 'Canvas display: ' + computed.display);
-                        log('info', 'Canvas visibility: ' + computed.visibility);
-                        log('info', 'Canvas position: ' + computed.position);
-                    }
-                    
-                    log('info', '--- 检测完成 ---');
-                }, 1000);
-            }
-        }, 500);
-    };
-})();
 </script>
 <script src="myLaya.min.js" loader="laya"></script>
 <script type="text/javascript" src="cordova.js"></script>
+<script>
+    window.onload = function() {
+        if (window.$initCallback) {
+            window.$initCallback();
+        }
+    };
+</script>
 </body>
 </html>
