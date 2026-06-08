@@ -104,29 +104,10 @@ public class UserPaiInfo {
         m.setPeng(MajiangUtils.toIndex(peng));
         m.setXiaoMingGang(MajiangUtils.toIndex(xiaoMingGang));
         m.setAnGang(MajiangUtils.toIndex(anGang));
-        if (isHuPai) {
-
-            if (maxFanResult != null) {
-                m.setBaseFanType(maxFanResult.getBaseFanType().name);
-
-                m.setFanString(maxFanResult.getFanString());
-                m.setHuiErBian(maxFanResult.getHuiErBian());
-
-                if (maxFanResult.getQueTou() != null) {
-                    m.setQueTou(maxFanResult.getQueTou().getIndex());
-                    m.setKeZi(MajiangUtils.toIndex(maxFanResult.getKeZi()));
-                    m.setShunZi(MajiangUtils.toIndex(maxFanResult.getShunZi()));
-                } else {
-                    m.setQueTou(Pai.NOT_PAI_INDEX);
-                }
-            }
-        } else {
-            m.setQueTou(Pai.NOT_PAI_INDEX);
-        }
+        m.setQueTou(Pai.NOT_PAI_INDEX);
         m.setScore(score);
         m.setFan(fan);
         m.setGuaFengXiaYu(guaFengXiaYu);
-
         m.setUserName(userName);
         return m;
     }

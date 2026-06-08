@@ -1,16 +1,27 @@
 package game.scene.room.majiang;
 
-import game.scene.room.majiang.rules.Rules;
 import mj.data.*;
+import mj.net.message.game.GameChapterEnd;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.stream.Stream;
 
 /**
- * @author zuoge85@gmail.com on 2017/1/18.
- * 砀山麻游：明杠1分，暗杠2分，胡牌3分，七对翻倍
+ * 砀山麻游计分规则：
+ * - 胡牌：3分（自摸三家各出3分，点炮放炮者出3分）
+ * - 七对胡牌：6分
+ * - 明杠（大明杠+碰后杠/小明杠）：1分，三家各出1分
+ * - 暗杠：2分，三家各出2分
+ * - 赢家不支付杠牌分（赢家除外）
+ * - 无马牌、无番数
  */
 public class ComputeFan {
+    private static final int HU_SCORE = 3;
+    private static final int QI_DUI_SCORE = 6;
+    private static final int MING_GANG_SCORE = 1;
+    private static final int AN_GANG_SCORE = 2;
+
     private MajiangChapter chapter;
     private ChapterEndResult endResult;
 
@@ -41,159 +52,84 @@ public class ComputeFan {
     public ChapterEndResult compute() {
         if (endResult.isHuPai()) {
             UserPlace[] userPlaces = chapter.getUserPlaces();
-
-            UserPlace userPlace = userPlaces[endResult.getHuPaiIndex()];
-
             UserPaiInfo[] userPaiInfos = endResult.getUserPaiInfos();
-
-            computeUser(userPaiInfos[endResult.getHuPaiIndex()], userPlace);
+            calcScore(userPaiInfos);
         }
-
         return endResult;
     }
 
-    private void computeUser(UserPaiInfo userPaiInfo, UserPlace userPlace) {
-        FanResult[] fanResults = userPaiInfo.getFanResults();
-        if (userPaiInfo.getFanResults() != null) {
-            for (FanResult result : userPaiInfo.getFanResults()) {
-                computeFanResult(result, endResult, userPlace, userPaiInfo);
+    /**
+     * 计算最终得分
+     * 规则：
+     * 1. 胡牌3分（七对6分），自摸三家全出，点炮放炮者出
+     * 2. 明杠（大明杠+碰后杠）每家出1分，暗杠每家出2分
+     * 3. 赢家不支付杠牌分（赢家除外）
+     */
+    private void calcScore(UserPaiInfo[] userPaiInfos) {
+        int huPaiIndex = endResult.getHuPaiIndex();
+        int fangPaoIndex = endResult.getFangPaoIndex();
+        boolean isZiMo = endResult.isZiMo();
+        int winner = huPaiIndex;
+
+        // 1. 确定胡牌基础分
+        UserPaiInfo winnerInfo = userPaiInfos[winner];
+        boolean isQiDui = checkQiDui(winnerInfo);
+        int huScore = isQiDui ? QI_DUI_SCORE : HU_SCORE;
+
+        // 2. 胡牌得分分配
+        if (isZiMo) {
+            // 自摸：三家各出3分（或七对6分）
+            winnerInfo.setScore(winnerInfo.getScore() + huScore * 3);
+            for (int i = 0; i < userPaiInfos.length; i++) {
+                if (i != winner) {
+                    userPaiInfos[i].setScore(userPaiInfos[i].getScore() - huScore);
+                }
             }
-            Optional<FanResult> max = Arrays.stream(fanResults).max(Comparator.comparingInt(FanResult::getFan));
-            userPaiInfo.setMaxFanResult(max.orElseGet(() -> null));
+        } else {
+            // 点炮：放炮者出3分（或七对6分）
+            winnerInfo.setScore(winnerInfo.getScore() + huScore);
+            userPaiInfos[fangPaoIndex].setScore(userPaiInfos[fangPaoIndex].getScore() - huScore);
         }
-    }
 
-
-    public void computeGuaFengXiaYu() {
-        UserPaiInfo[] userPaiInfos = endResult.getUserPaiInfos();
+        // 3. 杠牌分分配（杠吃三家，赢家除外）
         for (int i = 0; i < userPaiInfos.length; i++) {
-            UserPaiInfo userPaiInfo = userPaiInfos[i];
-            // 砀山麻游：明杠1分，暗杠2分
-            int score = userPaiInfo.getAnGang().size() * 2
-                    + userPaiInfo.getDaMingGang().size() * 1
-                    + userPaiInfo.getXiaoMingGang().size() * 1;
-
-            for (int j = 0; j < userPaiInfos.length; j++) {
-                UserPaiInfo ohterUserPaiInfo = userPaiInfos[j];
-                if (i != j) {
-                    ohterUserPaiInfo.setScore(ohterUserPaiInfo.getScore() - score);
-                    ohterUserPaiInfo.setGuaFengXiaYu(ohterUserPaiInfo.getGuaFengXiaYu() - score);
-                    userPaiInfo.setScore(userPaiInfo.getScore() + score);
-                    userPaiInfo.setGuaFengXiaYu(userPaiInfo.getGuaFengXiaYu() + score);
+            UserPaiInfo info = userPaiInfos[i];
+            int gangScore = info.getDaMingGang().size() * MING_GANG_SCORE
+                    + info.getXiaoMingGang().size() * MING_GANG_SCORE
+                    + info.getAnGang().size() * AN_GANG_SCORE;
+            if (gangScore > 0) {
+                // 向其他玩家收杠牌分
+                for (int j = 0; j < userPaiInfos.length; j++) {
+                    if (j != i && j != winner) {
+                        // 赢家除外：赢家不支付杠牌分
+                        info.setScore(info.getScore() + gangScore);
+                        userPaiInfos[j].setScore(userPaiInfos[j].getScore() - gangScore);
+                    }
                 }
             }
         }
     }
 
-    private void computeFanResult(FanResult fanResult, ChapterEndResult chapteResult, UserPlace userPlace, UserPaiInfo userPaiInfo) {
-        BaseFanType baseFanType;
-
-        if (!userPlace.hasAllOut()) {
-            baseFanType = userPaiInfo.isZhuang() ? BaseFanType.TIAN_HU : BaseFanType.DI_HU;
-        } else if (userPlace.isHuiErGang(chapter.getRules().isHuiGang(), chapteResult.getHuiEr())) {
-            baseFanType = BaseFanType.HUI_ER_GANG;
-        } else if (userPlace.isQiDui()) {
-            baseFanType = BaseFanType.QI_DUI;
-        } else if (fanResult.isDuiDuiHu(userPaiInfo)) {
-            baseFanType = BaseFanType.DUI_DUI_HU;
-        } else if (userPaiInfo.isZiMo()) {
-            baseFanType = BaseFanType.ZI_MO;
-        } else {
-            baseFanType = BaseFanType.JI_HU;
+    private boolean checkQiDui(UserPaiInfo info) {
+        // 检查是否为七对：手牌 + 碰（如果有碰则不是七对）
+        if (!info.getPeng().isEmpty() || !info.getChi().isEmpty()) {
+            return false;
         }
-        FanInfo baseFanInfo = chapter.getRules().getBaseFanMap().get(baseFanType);
-
-
-        fanResult.setBaseFanType(baseFanType);
-        StringBuilder sb = new StringBuilder();
-
-        int fan = baseFanInfo.getScore();
-        sb.append(baseFanInfo.getName());
-        for (Map.Entry<JiaFanType, FanInfo> entry : chapter.getRules().getJiaFanMap().entrySet()) {
-            JiaFanType jiaFan = entry.getKey();
-            FanInfo jiaFanInfo = entry.getValue();
-            int nums = jiaFan.compute(fanResult, chapteResult, userPlace, userPaiInfo);
-            for (int i = 0; i < nums; i++) {
-                fanResult.getJiaFans().add(jiaFan);
-                fan += jiaFanInfo.getScore();
-            }
-            if (nums == 1) {
-                sb.append(' ');
-                sb.append(jiaFanInfo.getName());
-            } else if (nums > 2) {
-                sb.append(' ');
-                sb.append(jiaFanInfo.getName()).append("x").append(nums);
-            }
+        // 七对：14张手牌（胡牌后）= 7个对子
+        ArrayList<Pai> shouPai = info.getShouPai();
+        if (shouPai.size() != 14) {
+            return false;
         }
-
-        // 砀山麻游：添加杠牌分数到胡牌总分
-        // 明杠1分，暗杠2分
-        int gangScore = userPaiInfo.getAnGang().size() * 2
-                + userPaiInfo.getDaMingGang().size() * 1
-                + userPaiInfo.getXiaoMingGang().size() * 1;
-        fan += gangScore;
-
-        fanResult.setFan(fan);
-        fanResult.setFanString(sb.toString());
-    }
-
-    private int computeJiaFan(JiaFanType jiaFan) {
-        FanInfo fanInfo = chapter.getRules().getJiaFanMap().get(jiaFan);
-        return fanInfo == null ? 0 : fanInfo.getScore();
+        // 检查是否都是对子
+        return chapter.getUserPlaces()[info.getLocationIndex()].isQiDui();
     }
 
     public int zaMa() {
-        return zaMaScore();
-    }
-
-    private int zaMaScore() {
-        Rules rules = chapter.getRules();
-        PaiPool paiPool = chapter.getPaiPool();
-        if (rules.isZaMa()) {
-
-            endResult.setZaMaType(rules.getZaMa());
-            int zaMa = rules.getZaMa();
-            if (zaMa == -1) {
-
-                Pai freePai = paiPool.getFreePai();
-                int zamaScore = zaMaYIMa(freePai);
-                endResult.setZaMaPai(new int[]{freePai.getIndex()});
-                endResult.setZaMaFan(zamaScore);
-                return zamaScore;
-            } else {
-                int zamaScore = 0;
-                List<Pai> zaMaPai = new ArrayList<>();
-                for (int i = 0; i < zaMa; i++) {
-                    Pai freePai = paiPool.getFreePai();
-                    if (freePai != null) {
-                        if (freePai.getDian() == 1 ||
-                                freePai.getDian() == 5 ||
-                                freePai.getDian() == 9 || freePai.equals(Pai.SANYUAN_ZHONG)) {
-                            zaMaPai.add(freePai);
-                            zamaScore += 2;
-                        }
-                    }
-                }
-                endResult.setZaMaPai(zaMaPai.stream().mapToInt(Pai::getIndex).toArray());
-                endResult.setZaMaFan(zamaScore);
-                return zamaScore;
-            }
-        }
+        // 砀山麻游没有马牌
         return 0;
     }
 
-    private int zaMaYIMa(Pai freePai) {
-        if (freePai != null) {
-            //  //一码全中一万   一筒    一条   就是一番一直到九万  九筒   九条  是9番     中  发   白是10番    最高10番
-            if (PaiType.SANYUAN.equals(freePai.getType())) {
-                return 10;
-            } else {
-//                if (freePai.getDian() == 1) {
-//                    return 10;
-//                }
-                return freePai.getDian();
-            }
-        }
-        return 0;
+    public void computeGuaFengXiaYu() {
+        // 杠牌分已在 calcScore 中直接计算，此处不再重复计算
     }
 }

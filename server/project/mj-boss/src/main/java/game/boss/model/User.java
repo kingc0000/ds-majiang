@@ -21,9 +21,18 @@ public abstract class User {
     private boolean joinHomeGatewaySuccess;
     private boolean joinHomeSceneSuccess;
     private Consumer<Boolean> joinRoomCallback;
+    private String loginType;
 
 
     public User() {
+    }
+
+    public String getLoginType() {
+        return loginType;
+    }
+
+    public void setLoginType(String loginType) {
+        this.loginType = loginType;
     }
 
     public short getSessionId() {

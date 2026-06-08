@@ -40,7 +40,7 @@ public class UserService extends FrameQueueContainer implements BaseService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
     public static final String LOGIN_TYPE_SMS = "SMS";
     public static final String LOGIN_TYPE_ANONYMOUS = "ANONYMOUS";
-    public static final String LOGIN_TYPE_TOKEN="***";
+    public static final String LOGIN_TYPE_TOKEN="TOKEN";
     public static final String LOGIN_TYPE_WEIXIN = "WEIXIN";
     public static final String LOGIN_TYPE_PASSWORD = "PASSWORD";  // 砀山麻游：密码登录
 
@@ -76,6 +76,9 @@ public class UserService extends FrameQueueContainer implements BaseService {
     }
 
     public void loginByOpenId(Login msg, User user) {
+        // 砀山麻游：记录登录类型，用于游客自动删除
+        user.setLoginType(msg.getType());
+        
         if (msg.getType().equals(LOGIN_TYPE_SMS)) {
             smsService.check(msg.getOpenId(), msg.getCode(), checkResult -> {
                 if (checkResult == null) {
@@ -176,8 +179,9 @@ public class UserService extends FrameQueueContainer implements BaseService {
             } else if (msg.getType().equals(LOGIN_TYPE_TOKEN)) {
                 userDO = userDao.findObject(UserDO.Table.LOGIN_TOKEN, openId);
                 if (userDO == null) {
-                    user.send(new LoginError());
-                    return;
+                    // TOKEN 找不到时自动创建用户（类似 ANONYMOUS）
+                    userDO = null;
+                    // openId 保留客户端发来的 token
                 }
             } else {
                 return;
@@ -200,6 +204,8 @@ public class UserService extends FrameQueueContainer implements BaseService {
 
                     if (msg.getType().equals(LOGIN_TYPE_SMS)) {
                         userDO.setMobile(openId);
+                    } else if (msg.getType().equals(LOGIN_TYPE_TOKEN)) {
+                        userDO.setLoginToken(openId);
                     } else if (msg.getType().equals(LOGIN_TYPE_WEIXIN) && weixinUser != null) {
                         userDO.setName(weixinUser.getNickname());
                         userDO.setSex(weixinUser.transformSex());
@@ -258,10 +264,22 @@ public class UserService extends FrameQueueContainer implements BaseService {
         if (userDO == null) {
             return;
         }
-//        openIdMap.remove(userDO.getOpenId());
         idMap.remove(userDO.getId());
         roomService.checkOffline(user);
-//        mobileMap.remove(userDO.getMobile());
+
+        // 砀山麻游：游客关闭游戏自动删除游客信息
+        final int userId = userDO.getId();
+        final String loginType = user.getLoginType();
+        if ("ANONYMOUS".equals(loginType)) {
+            asyncDbService.excuete(user, () -> {
+                try {
+                    userDao.del(new UserDO.Key(userId));
+                    log.info("游客用户退出，已删除用户记录：userId={}", userId);
+                } catch (Exception e) {
+                    log.error("删除游客用户失败：userId=" + userId, e);
+                }
+            });
+        }
 
         UserLoginLogDO loginLog = user.getLoginLog();
         Date now = new Date();

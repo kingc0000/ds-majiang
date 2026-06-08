@@ -65,7 +65,7 @@ public enum Pai {
     public static final int NOT_PAI_INDEX = -1;
 
     private static final Map<Integer, Pai> indexMap = Arrays.stream(Pai.values()).collect(
-            Collectors.toMap(Pai::getIndex, v -> v)
+            Collectors.toMap(Pai::getIndex, v -> v, (a, b) -> a)
     );
 
     private final PaiType type;

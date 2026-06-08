@@ -52,45 +52,27 @@ class DsMajiangRules extends Rules {
     private static ArrayList<Pai> createAllList() {
         ArrayList<Pai> list = new ArrayList<>();
 
-        // 筒子 1-9 各4张 = 36张
+        // 筒子 1-9 各1张（PaiPool.start() 会×4）
         for (int paiIndex = Pai.TONG_1.getIndex(); paiIndex <= Pai.TONG_9.getIndex(); paiIndex++) {
-            Pai pai = Pai.fromIndex(paiIndex);
-            for (int i = 0; i < 4; i++) {
-                list.add(pai);
-            }
+            list.add(Pai.fromIndex(paiIndex));
         }
 
-        // 条子 1-9 各4张 = 36张
+        // 条子 1-9 各1张
         for (int paiIndex = Pai.TIAO_1.getIndex(); paiIndex <= Pai.TIAO_9.getIndex(); paiIndex++) {
-            Pai pai = Pai.fromIndex(paiIndex);
-            for (int i = 0; i < 4; i++) {
-                list.add(pai);
-            }
+            list.add(Pai.fromIndex(paiIndex));
         }
 
-        // 万子 1-9 各4张 = 36张
+        // 万子 1-9 各1张
         for (int paiIndex = Pai.WAN_1.getIndex(); paiIndex <= Pai.WAN_9.getIndex(); paiIndex++) {
-            Pai pai = Pai.fromIndex(paiIndex);
-            for (int i = 0; i < 4; i++) {
-                list.add(pai);
-            }
+            list.add(Pai.fromIndex(paiIndex));
         }
 
-        // 花牌（中发白）各4张 = 12张
-        list.add(Pai.HUAPAI_ZHONG);
-        list.add(Pai.HUAPAI_ZHONG);
-        list.add(Pai.HUAPAI_ZHONG);
+        // 花牌（中发白）各1张（PaiPool.start() 会×4）
         list.add(Pai.HUAPAI_ZHONG);
         list.add(Pai.HUAPAI_FA);
-        list.add(Pai.HUAPAI_FA);
-        list.add(Pai.HUAPAI_FA);
-        list.add(Pai.HUAPAI_FA);
-        list.add(Pai.HUAPAI_BEI);
-        list.add(Pai.HUAPAI_BEI);
-        list.add(Pai.HUAPAI_BEI);
         list.add(Pai.HUAPAI_BEI);
 
-        // 总计：36 + 36 + 36 + 12 = 120张
+        // 总计：9 + 9 + 9 + 3 = 30张，PaiPool ×4 = 120张
         return list;
     }
 

@@ -314,32 +314,23 @@ public class MajiangChapter {
                 this, huPaiLocationIndex, fangPaoIndex, isGangShangHua
         );
         ChapterEndResult endResult = computeFan.compute();
-        //开始处理扎码
-
 
         if (endResult.isHuPai()) {
             if (zhuangIndex != huPaiLocationIndex) {
                 zhuangIndex = (zhuangIndex + 1) % 4;
-                if (zhuangIndex == 0) {//一圈
+                if (zhuangIndex == 0) {
                     quanIndex = (quanIndex + 1) % 4;
                 }
             }
 
-            int zaMaScore = computeFan.zaMa();
-
-            int fanNums = endResult.getFanNums() + zaMaScore;
-
-
-            endResult.excuteScore(fanNums);
-            computeFan.computeGuaFengXiaYu();
+            // 砀山麻游：无马牌，直接使用计算结果
+            endResult.excuteScore();
 
             room.getRoomInfo().changeScore(endResult.getUserPaiInfos());
         }
         GameChapterEnd msg = endResult.toMessage();
         gameChapterEnd = msg;
         chapterNums++;
-
-
         isStart = false;
         clear();
         room.sendMessage(msg);

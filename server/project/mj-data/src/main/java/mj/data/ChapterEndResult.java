@@ -23,54 +23,17 @@ public class ChapterEndResult {
     private boolean isLastPai;
     private int fangPaoIndex;
 
-    private int zaMaType;
-    private int[] zaMaPai;
-    private int zaMaFan;
-
     public ChapterEndResult() {
 
     }
 
-//    @SuppressWarnings("unchecked")
-//    public ChapterEndResult(MajiangChapter chapter, int huPaiIndex, int fangPaoIndex, boolean isGangShangHua) {
-//        this.isHuPai = huPaiIndex != -1;
-//        this.zhuangIndex = chapter.getZhuangIndex();
-//        this.huPaiIndex = huPaiIndex;
-//        this.isZiMo = fangPaoIndex == -1;
-//        this.isGangShangHua = isGangShangHua;
-//        this.fangPaoIndex = fangPaoIndex;
-//
-//        isLastPai = chapter.isLastPai();
-//
-//
-//        left = (ArrayList<Pai>) chapter.getLeftPai().clone();
-//
-//        huiEr = chapter.getHuiEr();
-//
-//        userPaiInfos = Stream.of(chapter.getUserPlaces())
-//                .map(u -> new UserPaiInfo(
-//                        u, u.getLocationIndex() == huPaiIndex, u.getLocationIndex() == zhuangIndex, isZiMo
-//                ))
-//                .toArray(UserPaiInfo[]::new);
-//
-//    }
-
-
-
-    public void excuteScore(int score) {
+    /**
+     * 砀山麻游新版：分数已在 ComputeFan.calcScore 中直接计算，
+     * 此处仅同步 fan 字段供客户端显示
+     */
+    public void excuteScore() {
         for (int i = 0; i < userPaiInfos.length; i++) {
-            userPaiInfos[i].setFan(score);
-        }
-        if (fangPaoIndex == -1) {
-            for (int i = 0; i < userPaiInfos.length; i++) {
-                if (i != huPaiIndex) {
-                    userPaiInfos[i].setScore(-score);
-                }
-            }
-            userPaiInfos[huPaiIndex].setScore(score * 3);
-        } else {
-            userPaiInfos[fangPaoIndex].setScore(-score);
-            userPaiInfos[huPaiIndex].setScore(score);
+            userPaiInfos[i].setFan(userPaiInfos[i].getScore());
         }
     }
 
@@ -78,10 +41,9 @@ public class ChapterEndResult {
         GameChapterEnd m = new GameChapterEnd();
         m.setFangPaoIndex(fangPaoIndex);
         m.setHuPaiIndex(huPaiIndex);
-        m.setZaMaFan(zaMaFan);
-        m.setZaMaPai(zaMaPai);
-        m.setZaMaType(zaMaType);
-
+        m.setZaMaFan(0);
+        m.setZaMaPai(new int[0]);
+        m.setZaMaType(0);
 
         m.setFanResults(Arrays.stream(userPaiInfos)
                 .map(UserPaiInfo::toMessage)
@@ -178,30 +140,6 @@ public class ChapterEndResult {
         this.fangPaoIndex = fangPaoIndex;
     }
 
-    public int getZaMaType() {
-        return zaMaType;
-    }
-
-    public void setZaMaType(int zaMaType) {
-        this.zaMaType = zaMaType;
-    }
-
-    public int[] getZaMaPai() {
-        return zaMaPai;
-    }
-
-    public void setZaMaPai(int[] zaMaPai) {
-        this.zaMaPai = zaMaPai;
-    }
-
-    public int getZaMaFan() {
-        return zaMaFan;
-    }
-
-    public void setZaMaFan(int zaMaFan) {
-        this.zaMaFan = zaMaFan;
-    }
-
     @Override
     public String toString() {
         return "ChapterEndResult{" +
@@ -215,9 +153,6 @@ public class ChapterEndResult {
                 ", isGangShangHua=" + isGangShangHua +
                 ", isLastPai=" + isLastPai +
                 ", fangPaoIndex=" + fangPaoIndex +
-                ", zaMaType=" + zaMaType +
-                ", zaMaPai=" + Arrays.toString(zaMaPai) +
-                ", zaMaFan=" + zaMaFan +
                 '}';
     }
 }
