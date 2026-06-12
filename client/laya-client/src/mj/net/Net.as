@@ -57,7 +57,7 @@ package mj.net
         {
             if (instance != null)
             {
-                throw new SingletonError("ResourceManager 是单例模式");
+                throw new SingletonError("Net 是单例模式");
             }
         }
 

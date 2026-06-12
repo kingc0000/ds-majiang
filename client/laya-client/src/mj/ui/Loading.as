@@ -27,7 +27,7 @@ package mj.ui
         {
             if (instance != null)
             {
-                throw new SingletonError("ResourceManager 是单例模式");
+                throw new SingletonError("Loading 是单例模式");
             }
             Laya.stage.on(Event.RESIZE, this, layout);
 

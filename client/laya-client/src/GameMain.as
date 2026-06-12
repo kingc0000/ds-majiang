@@ -10,7 +10,6 @@ package
     import laya.ui.View;
     import laya.utils.Browser;
     import laya.utils.Handler;
-    import laya.utils.Stat;
     import laya.webgl.WebGL;
 
     import mj.GlobalResource;
@@ -76,7 +75,7 @@ package
             this._profile = profile;
             trace(this);
             //初始化引擎
-            Stat.show(0, 100);
+            //Stat.show(0, 100);
             UiManager.instance.init();
             GlobalResource.instance.init();
             
@@ -107,15 +106,10 @@ package
             var serverUrl:String = __JS__("window.serverUrl");
             if (!serverUrl)
             {
-                serverUrl = "ws://127.0.0.1:8010/g";
-//                serverUrl = "ws://192.168.0.205:8010/g";
-//                serverUrl = "ws://182.92.100.147:8012/g";
+                // 强制要求从 window.serverUrl 获取，如果未配置则会显示错误信息而不是连接本地
+                Dialog.showMessage("WebSocket 服务器地址未配置！请检查 index.html 中的 window.serverUrl");
+                return;
             }
-//            Net.instance.init("ws://127.0.0.1:8010/g", function ():void
-//            Net.instance.init("ws://192.168.0.205:8010/g", function ():void
-//            Net.instance.init("ws://182.92.100.147:8011/g", function ():void
-//            Net.instance.init("ws://182.92.100.147:8010/g", function ():void
-//            Net.instance.init("ws://182.92.100.147:8012/g", function ():void
             Net.instance.init(serverUrl, function ():void
             {
                 Console.log("onConnect");
