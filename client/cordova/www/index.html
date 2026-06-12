@@ -9,6 +9,73 @@
 <script type="text/javascript">
     window.serverUrl = "wss://mj.235301.xyz/ws/g";
 </script>
+
+
+// ===== 调试代码 START =====
+window.LayaDebug = {
+    errors: [],
+    warnings: [],
+    logs: [],
+    
+    log: function(msg) {
+        this.logs.push(msg);
+        console.log('[LayaDebug]', msg);
+    },
+    
+    error: function(msg, e) {
+        this.errors.push({msg: msg, error: e, time: new Date().toISOString()});
+        console.error('[LayaDebug ERROR]', msg, e);
+    },
+    
+    warn: function(msg) {
+        this.warnings.push(msg);
+        console.warn('[LayaDebug WARN]', msg);
+    }
+};
+
+// 捕获全局错误
+window.onerror = function(msg, url, line, col, error) {
+    window.LayaDebug.error('全局错误: ' + msg, {url: url, line: line, col: col, error: error});
+    
+    // 显示错误弹窗
+    if (window.LayaDebug.errors.length <= 3) {
+        var errDiv = document.createElement('div');
+        errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);color:#fff;z-index:999999;font-family:monospace;padding:20px;overflow:auto;';
+        errDiv.innerHTML = '<h2 style="color:#ff4444;">⚠️ 游戏启动错误</h2>' +
+            '<p>错误信息: ' + msg + '</p>' +
+            '<p>文件: ' + url + '</p>' +
+            '<p>位置: 第' + line + '行，第' + col + '列</p>' +
+            '<p>错误对象: ' + (error ? error.stack || error : '无') + '</p>' +
+            '<p>已捕获错误数: ' + window.LayaDebug.errors.length + '</p>' +
+            '<button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;font-size:16px;">重试</button>' +
+            '<button onclick="document.getElementById('debug-info').style.display='block'" style="margin-top:20px;padding:10px 20px;font-size:16px;">查看调试信息</button>' +
+            '<div id="debug-info" style="display:none;margin-top:20px;"><h3>调试日志:</h3><pre>' + 
+            window.LayaDebug.logs.join('\n') + '</pre></div>';
+        document.body.appendChild(errDiv);
+    }
+    return true; // 阻止默认错误处理
+};
+
+// 捕获 Promise 拒绝
+window.addEventListener('unhandledrejection', function(event) {
+    window.LayaDebug.error('Promise 拒绝: ' + event.reason, event);
+});
+
+// 监听 Laya 初始化
+var originalLayaInit = null;
+window.LayaDebug.initTime = new Date().toISOString();
+window.LayaDebug.deviceInfo = {
+    width: screen.width,
+    height: screen.height,
+    pixelRatio: window.devicePixelRatio || 1,
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    language: navigator.language
+};
+window.LayaDebug.log('设备信息: ' + JSON.stringify(window.LayaDebug.deviceInfo));
+
+// ===== 调试代码 END =====
+
 <script src="myLaya.min.js?v=202606120514"></script>
 </body>
 </html>
