@@ -79,6 +79,13 @@ package
             Stat.show(0, 100);
             UiManager.instance.init();
             GlobalResource.instance.init();
+            
+            // 启用全局错误捕获（调试用）
+            Laya.alertGlobalError = true;
+            
+            // 添加资源加载错误监听
+            Laya.loader.on(Event.ERROR, this, onLoaderError);
+            
             //加载引擎需要的资源
             Laya.loader.load([
                 "ui/loading/bg.jpg",
@@ -180,6 +187,39 @@ package
             Dialog.showMessage("获取位置失败！请打开位置权限！");
 //            isGeolocationComplete = true;
 //            goLoginScene();
+        }
+        
+        // 资源加载错误处理
+        private function onLoaderError(e:Event):void
+        {
+            Console.log("资源加载错误!", e);
+            Console.log("错误目标:", e.target);
+            Console.log("错误类型:", e.type);
+            
+            // 显示错误信息
+            var errorMsg:String = "资源加载失败！\n";
+            if (e.target)
+            {
+                errorMsg += "文件: " + e.target + "\n";
+            }
+            errorMsg += "请检查网络连接或重新安装游戏。";
+            
+            Dialog.showMessage(errorMsg, Handler.create(this, function():void
+            {
+                // 尝试重新加载
+                Console.log("尝试重新加载...");
+                Laya.loader.off(Event.ERROR, this, onLoaderError);
+                Laya.loader.load([
+                    "ui/loading/bg.jpg",
+                    "ui/loading/progress.png",
+                    "ui/loading/progress$bar.png"
+                ], Handler.create(this, startGame), Handler.create(this, onLoaderProgress));
+            }));
+        }
+        
+        private function onLoaderProgress(value:*):void
+        {
+            Console.log("资源加载进度:", value);
         }
 
         private function onGlobalResourceComplete():void

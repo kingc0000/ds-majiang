@@ -82,3 +82,47 @@ jobs:
           body: "Auto-built APK from commit ${{ github.sha }}"
           files: client/cordova/platforms/android/app/build/outputs/apk/debug/*.apk
           make_latest: true
+
+      - name: Deploy APK to Server
+        if: success() && github.ref == 'refs/heads/main'
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          if [ -n "$SERVER_HOST" ] && [ -n "$SERVER_SSH_KEY" ]; then
+            echo "Deploying APK to server..."
+            
+            # 创建临时 SSH key 文件
+            echo "$SERVER_SSH_KEY" > /tmp/deploy_key
+            chmod 600 /tmp/deploy_key
+            
+            # 上传 APK
+            scp -i /tmp/deploy_key -o StrictHostKeyChecking=no               client/cordova/platforms/android/app/build/outputs/apk/debug/*.apk               $SERVER_USER@$SERVER_HOST:/www/wwwroot/mj-game/app-debug.apk
+            
+            # 同步资源文件
+            scp -i /tmp/deploy_key -o StrictHostKeyChecking=no               client/cordova/www/index.html               $SERVER_USER@$SERVER_HOST:/www/wwwroot/mj-game/index.html
+            
+            echo "✅ APK deployed successfully!"
+            
+            # 清理
+            rm /tmp/deploy_key
+          else
+            echo "⚠️ Server secrets not configured, skipping deployment"
+          fi
+
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ds-majiang-apk
+          path: |
+            client/cordova/platforms/android/app/build/outputs/apk/debug/*.apk
+      - name: Create Release
+        if: success() && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}-${{ github.sha }}
+          name: "Build #${{ github.run_number }}"
+          body: "Auto-built APK from commit ${{ github.sha }}"
+          files: client/cordova/platforms/android/app/build/outputs/apk/debug/*.apk
+          make_latest: true
