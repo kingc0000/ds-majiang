@@ -2,13 +2,81 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width, viewport-fit=cover">
     <title>砀山235</title>
+    <style>
+        * { margin:0; padding:0; }
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        #gameCanvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+        #rotate-hint {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            z-index: 9999;
+            color: #fff;
+            font-size: 18px;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #rotate-hint .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            animation: rotate-icon 1.5s ease-in-out infinite;
+        }
+        @keyframes rotate-icon {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+            100% { transform: rotate(0deg); }
+        }
+        @media (orientation: portrait) {
+            #rotate-hint { display: flex; }
+            #gameCanvas { display: none; }
+        }
+        @media (orientation: landscape) {
+            #rotate-hint { display: none !important; }
+            #gameCanvas { display: block; }
+        }
+    </style>
 </head>
-<body style="margin:0;overflow:hidden;overflow-x:hidden;overflow-y:hidden;background-color: #000;">
-<script type="text/javascript">
-window.serverUrl = "wss://mj.235301.xyz/ws/g";
-</script>
-<script src="myLaya.min.js?v=20260613"></script>
+<body>
+    <div id="rotate-hint">
+        <div class="icon">📱</div>
+        <div>请横屏使用</div>
+        <div style="font-size:14px;color:#888;margin-top:10px;">请将手机旋转至横屏模式</div>
+    </div>
+    <div id="gameCanvas">
+        <script type="text/javascript">
+            window.serverUrl = "wss://mj.235301.xyz/ws/g";
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(function(e){});
+                }
+            } catch(e) {}
+            function checkOrientation() {
+                if (window.innerHeight > window.innerWidth) {}
+            }
+            window.addEventListener('resize', checkOrientation);
+            window.addEventListener('orientationchange', function() {
+                setTimeout(checkOrientation, 300);
+            });
+            checkOrientation();
+        </script>
+        <script src="/game/myLaya.min.js?v=20260614"></script>
+    </div>
 </body>
 </html>
