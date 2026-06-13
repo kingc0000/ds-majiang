@@ -108,11 +108,11 @@ public class RoomImpi extends Room {
 
     public void delRoom(int userId, Consumer<Boolean> callback) {
         run(() -> {
-//            if (roomInfo.isChapterStart()) {
-//                callback.accept(false);
-//            } else {
+            if (roomInfo.isChapterStart()) {
+                callback.accept(false);
+            } else {
                 callback.accept(true);
-//            }
+            }
         });
     }
 
@@ -242,7 +242,7 @@ public class RoomImpi extends Room {
             if (count != null) {
                 voteDelInfo.put(msg.getUserId(), count + 1);
             }
-            if (count >= 0) {
+            if (count >= 2) {
                 RoomEndMsg m = new RoomEndMsg();
                 m.setCrateUserId(getRoomInfo().getCreateUserId());
                 m.setRoomId(getRoomInfo().getRoomId());

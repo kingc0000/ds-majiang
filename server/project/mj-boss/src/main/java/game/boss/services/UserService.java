@@ -236,11 +236,14 @@ public class UserService extends FrameQueueContainer implements BaseService {
                 User prevUser = idMap.get(user.getUserId());
                 if (prevUser == user) {
                     closeUser(user);
-                } else {
+                } else if (prevUser != null) {
                     log.error("严重错误,出现不一致,{} <--> {}", user, prevUser);
                     //关闭两个用户
                     closeUser(user);
                     closeUser(prevUser);
+                } else {
+                    // 用户不在线，直接忽略
+                    log.warn("logout用户不在线：{}", user.getUserId());
                 }
             }
             {

@@ -32,9 +32,9 @@ public class PaiPool {
         pais.addAll(rules.getAllPai());
         pais.addAll(rules.getAllPai());
         pais.addAll(rules.getAllPai());
-        //乱序
-        for (int i = 0; i < pais.size(); i++) {
-            int randomIndex = RandomUtils.nextInt(pais.size());
+        //乱序（Fisher-Yates 洗牌算法，保证等概率分布）
+        for (int i = pais.size() - 1; i > 0; i--) {
+            int randomIndex = RandomUtils.nextInt(i + 1);
 
             Pai temp = pais.get(i);
             pais.set(i, pais.get(randomIndex));

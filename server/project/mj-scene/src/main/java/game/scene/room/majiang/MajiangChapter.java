@@ -167,7 +167,7 @@ public class MajiangChapter {
     public void faPaiRet(int locationIndex, String opt, int paiIndex) {
         Pai pai = Pai.fromIndex(paiIndex);
         if (operationFaPai == null) {
-            log.error("发牌操作已经结束！index:{},opt:{},pai:{}");
+            log.error("发牌操作已经结束！index:{},opt:{},pai:{}", locationIndex, opt, paiIndex);
         }
         if (locationIndex != operationFaPai.getIndex()) {
             throw new RuntimeException("错误的操作用户:" + locationIndex + ",实际上应该是:" + operationFaPai.getIndex());
