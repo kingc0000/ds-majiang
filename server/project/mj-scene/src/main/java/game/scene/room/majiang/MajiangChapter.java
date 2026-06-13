@@ -208,7 +208,7 @@ public class MajiangChapter {
 
     public void cpghRet(int locationIndex, String opt, int[] chi) {
         if (operationCPGH == null) {
-            log.error("发牌操作已经结束！index:{},opt:{},pai:{}");
+            log.error("发牌操作已经结束！index:{},opt:{},pai:{}", locationIndex, opt, chi);
         }
         if (locationIndex != operationCPGH.getIndex()) {
             throw new RuntimeException("错误的操作用户:" + locationIndex + ",实际上应该是:" + operationFaPai.getIndex());
